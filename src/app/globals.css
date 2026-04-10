@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #F8FAFC;
+  --foreground: #0F172A;
+}
+
+body {
+  color: var(--foreground);
+  background-color: var(--background);
+  /* A very subtle, clean radial gradient to eliminate pure flatness */
+  background-image: 
+    radial-gradient(circle at 15% 50%, rgba(79, 70, 229, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 85% 30%, rgba(16, 185, 129, 0.03) 0%, transparent 50%);
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
