@@ -6,7 +6,6 @@ import {
   BarChart3, 
   Target, 
   Bot, 
-  Settings, 
   LogOut, 
   Mail, 
   Calendar, 

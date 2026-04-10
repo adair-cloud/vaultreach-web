@@ -1,7 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Briefcase, ArrowRight, CheckCircle2, Mail, Calendar, Settings, BarChart, Zap, Inbox } from "lucide-react"
+import { Briefcase, ArrowRight, CheckCircle2, Mail, Calendar, BarChart, Zap, Inbox } from "lucide-react"
 import { useEffect, useState } from "react"
 import Link from 'next/link'
 
