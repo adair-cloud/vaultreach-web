@@ -1,7 +1,10 @@
 import NextAuth from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
+import { PrismaAdapter } from "@next-auth/prisma-adapter"
+import { prisma } from "@/lib/prisma"
 
 const handler = NextAuth({
+  adapter: PrismaAdapter(prisma),
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_ID || "",
@@ -15,16 +18,20 @@ const handler = NextAuth({
       }
     })
   ],
+  session: {
+    strategy: "jwt"
+  },
   callbacks: {
-    async jwt({ token, account }) {
+    async jwt({ token, account, user }) {
       if (account) {
         token.accessToken = account.access_token
-        token.refreshToken = account.refresh_token
-        // In Phase 3, we extract token.refreshToken and save it to the Prisma Database using the user's email
+        token.id = user?.id
       }
       return token
     },
     async session({ session, token }) {
+      // @ts-expect-error: NextAuth dynamically injects user id but types omit it
+      session.user.id = token.id
       // @ts-expect-error: NextAuth dynamically injects accessToken but types omit it
       session.accessToken = token.accessToken
       return session
