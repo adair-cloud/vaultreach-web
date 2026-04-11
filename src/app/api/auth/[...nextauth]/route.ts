@@ -1,45 +1,6 @@
 import NextAuth from "next-auth"
-import GoogleProvider from "next-auth/providers/google"
-import { PrismaAdapter } from "@next-auth/prisma-adapter"
-import { prisma } from "@/lib/prisma"
+import { authOptions } from "@/lib/authOptions"
 
-const handler = NextAuth({
-  adapter: PrismaAdapter(prisma),
-  providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_ID || "",
-      clientSecret: process.env.GOOGLE_SECRET || "",
-      authorization: {
-        params: {
-          scope: "openid email profile https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.readonly",
-          access_type: "offline",
-          prompt: "consent",
-        }
-      }
-    })
-  ],
-  session: {
-    strategy: "jwt"
-  },
-  callbacks: {
-    async jwt({ token, account, user }) {
-      if (account) {
-        token.accessToken = account.access_token
-        token.id = user?.id
-      }
-      return token
-    },
-    async session({ session, token }) {
-      // @ts-expect-error: NextAuth dynamically injects user id but types omit it
-      session.user.id = token.id
-      // @ts-expect-error: NextAuth dynamically injects accessToken but types omit it
-      session.accessToken = token.accessToken
-      return session
-    }
-  },
-  pages: {
-    signIn: '/login',
-  }
-})
+const handler = NextAuth(authOptions)
 
 export { handler as GET, handler as POST }
