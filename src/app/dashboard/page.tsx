@@ -264,7 +264,7 @@ export default function Dashboard() {
                         <MessageSquareText size={16} className="text-indigo-600" />
                         Auto-Reply Guardrails (Custom Instructions)
                       </label>
-                      <p className="text-xs text-slate-500 font-medium mb-3">Provide specific rules for the AI when handling replies, e.g., "Never offer a discount" or "If asked for pricing, say it starts at $5,000".</p>
+                      <p className="text-xs text-slate-500 font-medium mb-3">Provide specific rules for the AI when handling replies, e.g., &quot;Never offer a discount&quot; or &quot;If asked for pricing, say it starts at $5,000&quot;.</p>
                       <textarea 
                         value={rules}
                         onChange={(e) => setRules(e.target.value)}

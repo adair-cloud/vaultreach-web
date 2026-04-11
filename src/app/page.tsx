@@ -157,7 +157,7 @@ export default function Home() {
                       <span className="text-xs text-slate-400">2 hours ago</span>
                     </div>
                     <div className="font-semibold text-slate-800 text-sm mb-1">Re: Quick question about your agency</div>
-                    <div className="text-sm text-slate-600 truncate">I'd love to learn more. Can you send over some pricing on your package?</div>
+                    <div className="text-sm text-slate-600 truncate">I&apos;d love to learn more. Can you send over some pricing on your package?</div>
                   </div>
                 </div>
               </div>
@@ -176,7 +176,7 @@ export default function Home() {
                 <div className="bg-indigo-100 text-indigo-600 p-3 rounded-xl h-fit"><BarChart size={24} /></div>
                 <div>
                   <h3 className="text-xl font-bold text-slate-900 mb-2">Tailored to Your Company Brand</h3>
-                  <p className="text-slate-600 leading-relaxed">VaultReach scrapes your website to learn exactly what you do. Every email generated reads perfectly in your brand's unique tone of voice.</p>
+                  <p className="text-slate-600 leading-relaxed">VaultReach scrapes your website to learn exactly what you do. Every email generated reads perfectly in your brand&apos;s unique tone of voice.</p>
                 </div>
               </div>
             </div>

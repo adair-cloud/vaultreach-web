@@ -25,7 +25,7 @@ const handler = NextAuth({
       return token
     },
     async session({ session, token }) {
-      // @ts-ignore
+      // @ts-expect-error
       session.accessToken = token.accessToken
       return session
     }
