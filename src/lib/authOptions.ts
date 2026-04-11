@@ -23,9 +23,12 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async jwt({ token, account, user }) {
-      if (account) {
+      if (account && user) {
+        token.id = user.id
         token.accessToken = account.access_token
-        token.id = user?.id
+        // Attach subscription status to JWT so middleware can gate /dashboard
+        const dbUser = await prisma.user.findUnique({ where: { id: user.id } })
+        token.stripeSubscriptionId = dbUser?.stripeSubscriptionId ?? null
       }
       return token
     },
