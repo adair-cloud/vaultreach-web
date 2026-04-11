@@ -156,7 +156,7 @@ export default function Dashboard() {
                   <div className="divide-y divide-slate-100">
                     {[
                       { name: "Sarah Jenkins", role: "CEO at Horizon Roofers", preview: "Yes, we actually need this right now. Are you free to call on Tuesday?", time: "2 hours ago" },
-                      { name: "Mike O'Connor", role: "Partner at Local CPA", preview: "I'd love to learn more. Can you send over some pricing on your package?", time: "5 hours ago" },
+                      { name: "Mike O&apos;Connor", role: "Partner at Local CPA", preview: "I&apos;d love to learn more. Can you send over some pricing on your package?", time: "5 hours ago" },
                       { name: "Jessica T.", role: "Founder, Bloom Agency", preview: "Sounds interesting. Let's schedule a quick 10 min intro for next week.", time: "1 day ago" }
                     ].map((reply, i) => (
                       <div key={i} className="p-6 hover:bg-slate-50 transition-colors flex justify-between items-center">

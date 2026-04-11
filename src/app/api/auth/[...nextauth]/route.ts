@@ -25,7 +25,7 @@ const handler = NextAuth({
       return token
     },
     async session({ session, token }) {
-      // @ts-expect-error
+      // @ts-expect-error: NextAuth dynamically injects accessToken but types omit it
       session.accessToken = token.accessToken
       return session
     }

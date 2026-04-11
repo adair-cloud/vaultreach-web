@@ -153,7 +153,7 @@ export default function Home() {
                   </div>
                   <div className="p-4 hover:bg-slate-50 transition-colors">
                     <div className="flex justify-between items-center mb-1">
-                      <span className="font-bold text-slate-900">Mike O'Connor</span>
+                      <span className="font-bold text-slate-900">Mike O&apos;Connor</span>
                       <span className="text-xs text-slate-400">2 hours ago</span>
                     </div>
                     <div className="font-semibold text-slate-800 text-sm mb-1">Re: Quick question about your agency</div>
