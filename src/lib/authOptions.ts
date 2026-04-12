@@ -10,7 +10,6 @@ export const authOptions: NextAuthOptions = {
       clientId: process.env.GOOGLE_ID || "",
       clientSecret: process.env.GOOGLE_SECRET || "",
       // Safe when Google is the only provider — Google already verified email ownership.
-      // Prevents the OAuthAccountNotLinked error when a User row exists without an Account row.
       allowDangerousEmailAccountLinking: true,
       authorization: {
         params: {
@@ -26,13 +25,22 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async jwt({ token, account, user }) {
-      if (account && user) {
-        token.id = user.id
-        token.accessToken = account.access_token
-        // Attach subscription status to JWT so middleware can gate /dashboard
-        const dbUser = await prisma.user.findUnique({ where: { id: user.id } })
+      // Capture id and access token on first sign-in
+      if (user) token.id = user.id
+      if (account) token.accessToken = account.access_token
+
+      // ALWAYS re-read stripeSubscriptionId from the database.
+      // This ensures that when the client calls useSession().update() after a
+      // successful Stripe payment, the new subscription is picked up immediately.
+      const userId = (token.id ?? user?.id) as string | undefined
+      if (userId) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { stripeSubscriptionId: true }
+        })
         token.stripeSubscriptionId = dbUser?.stripeSubscriptionId ?? null
       }
+
       return token
     },
     async session({ session, token }) {

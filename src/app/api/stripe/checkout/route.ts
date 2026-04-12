@@ -34,7 +34,7 @@ export async function POST() {
     payment_method_types: ["card"],
     line_items: [{ price: process.env.STRIPE_PRICE_ID!, quantity: 1 }],
     mode: "subscription",
-    success_url: `${process.env.NEXTAUTH_URL}/dashboard?subscribed=true`,
+    success_url: `${process.env.NEXTAUTH_URL}/success`,
     cancel_url: `${process.env.NEXTAUTH_URL}/subscribe?canceled=true`,
     metadata: { userId: user.id },
   })
