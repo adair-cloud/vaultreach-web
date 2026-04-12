@@ -3,35 +3,57 @@
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useSession, signOut } from "next-auth/react"
-import { BarChart3, Target, Bot, LogOut, Mail, Calendar, TrendingUp, BrainCircuit, MessageSquareText, Save, CheckCircle } from "lucide-react"
+import {
+  BarChart3, Target, BrainCircuit, LogOut, Save, CheckCircle,
+  Mail, Calendar, TrendingUp, Zap, Clock, MessageSquareText,
+  ArrowUpRight, Bot, ChevronRight
+} from "lucide-react"
 
 const VaultLogo = () => (
-  <svg width="24" height="24" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
-    <rect width="40" height="40" rx="10" fill="#4F46E5"/>
+  <svg width="28" height="28" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
+    <rect width="40" height="40" rx="10" fill="#6366F1"/>
     <path d="M12 14L18.5 28L21.5 22M21.5 22L28 14H24L20 20L16 14H12Z" fill="white"/>
     <path d="M21.5 22C21.5 22 25 15 28 14C29.5 13.5 32 17 28 22C24 27 21.5 22 21.5 22Z" fill="white" fillOpacity="0.8"/>
   </svg>
 )
 
+function AnimatedNumber({ value }: { value: number }) {
+  const [display, setDisplay] = useState(0)
+  useEffect(() => {
+    if (value === 0) return
+    let start = 0
+    const step = Math.ceil(value / 30)
+    const timer = setInterval(() => {
+      start += step
+      if (start >= value) { setDisplay(value); clearInterval(timer) }
+      else setDisplay(start)
+    }, 30)
+    return () => clearInterval(timer)
+  }, [value])
+  return <>{display.toLocaleString()}</>
+}
+
+function getGreeting() {
+  const h = new Date().getHours()
+  if (h < 12) return "Good morning"
+  if (h < 18) return "Good afternoon"
+  return "Good evening"
+}
+
 export default function Dashboard() {
   const { data: session } = useSession()
-  const [activeTab, setActiveTab] = useState('overview')
+  const [activeTab, setActiveTab] = useState("overview")
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [url, setUrl] = useState("")
   const [icp, setIcp] = useState("")
-  
-  // AI Brain State
   const [tone, setTone] = useState("professional")
   const [rules, setRules] = useState("")
   const [isSaving, setIsSaving] = useState(false)
-
-  // Analytics State
   const [analytics, setAnalytics] = useState({ emailsSent: 0, replies: 0, meetings: 0 })
 
-  // Load existing campaign data on mount
   useEffect(() => {
     async function load() {
-      const res = await fetch('/api/campaigns')
+      const res = await fetch("/api/campaigns")
       if (res.ok) {
         const { campaign } = await res.json()
         if (campaign) {
@@ -41,7 +63,7 @@ export default function Dashboard() {
           setRules(campaign.employeeRange ?? "")
         }
       }
-      const analyticsRes = await fetch('/api/analytics')
+      const analyticsRes = await fetch("/api/analytics")
       if (analyticsRes.ok) {
         const data = await analyticsRes.json()
         setAnalytics(data)
@@ -54,16 +76,13 @@ export default function Dashboard() {
     e.preventDefault()
     setIsSaving(true)
     try {
-      await fetch('/api/campaigns', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      await fetch("/api/campaigns", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          websiteUrl: url,
-          targetIndustry: icp,
-          targetTitles: tone,
-          employeeRange: rules,
-          targetLocations: "",
-        })
+          websiteUrl: url, targetIndustry: icp, targetTitles: tone,
+          employeeRange: rules, targetLocations: "",
+        }),
       })
       setSaveSuccess(true)
       setTimeout(() => setSaveSuccess(false), 3000)
@@ -72,191 +91,293 @@ export default function Dashboard() {
     }
   }
 
-  const userName = session?.user?.name ?? "User"
-  const userInitial = userName.charAt(0).toUpperCase()
+  const userName = session?.user?.name?.split(" ")[0] ?? "there"
+  const userInitial = (session?.user?.name ?? "U").charAt(0).toUpperCase()
+  const pipelineValue = analytics.meetings * 3000
+  const hoursSaved = Math.max(analytics.emailsSent * 0.5, 0)
+
+  const navItems = [
+    { id: "overview", icon: BarChart3, label: "Overview" },
+    { id: "targeting", icon: Target, label: "Lead Targeting" },
+    { id: "brain", icon: BrainCircuit, label: "AI Brain" },
+  ]
+
+  const kpis = [
+    {
+      label: "Emails Sent", value: analytics.emailsSent,
+      icon: Mail, format: "number",
+      gradient: "from-indigo-500/20 to-indigo-600/5",
+      border: "border-indigo-500/20", iconColor: "text-indigo-400",
+      badge: "Live", badgeColor: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
+      sub: analytics.emailsSent === 0 ? "Warming up..." : `${Math.round(analytics.emailsSent * 0.44)} estimated opens`,
+    },
+    {
+      label: "Positive Replies", value: analytics.replies,
+      icon: MessageSquareText, format: "number",
+      gradient: "from-violet-500/20 to-violet-600/5",
+      border: "border-violet-500/20", iconColor: "text-violet-400",
+      badge: "Auto-tracked", badgeColor: "text-violet-400 bg-violet-400/10 border-violet-400/20",
+      sub: analytics.replies === 0 ? "First reply ~48 hrs" : `${Math.round(analytics.replies / Math.max(analytics.emailsSent, 1) * 100)}% reply rate`,
+    },
+    {
+      label: "Meetings Booked", value: analytics.meetings,
+      icon: Calendar, format: "number",
+      gradient: "from-sky-500/20 to-sky-600/5",
+      border: "border-sky-500/20", iconColor: "text-sky-400",
+      badge: "Goal", badgeColor: "text-sky-400 bg-sky-400/10 border-sky-400/20",
+      sub: analytics.meetings === 0 ? "Replies convert at ~12%" : `${analytics.meetings} this month`,
+    },
+    {
+      label: "Est. Pipeline Value", value: pipelineValue,
+      icon: TrendingUp, format: "currency",
+      gradient: "from-emerald-500/20 to-emerald-600/5",
+      border: "border-emerald-500/20", iconColor: "text-emerald-400",
+      badge: "Est. @ $3K/deal", badgeColor: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
+      sub: analytics.meetings === 0 ? "Grows with every meeting" : "Based on avg deal size",
+    },
+  ]
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden font-sans text-slate-900">
-      
+    <div className="flex h-screen overflow-hidden font-sans" style={{ background: "#0B0F1A" }}>
+
       {/* SIDEBAR */}
-      <aside className="w-64 bg-white border-r border-slate-200 flex flex-col justify-between hidden md:flex shrink-0">
+      <aside className="w-60 shrink-0 hidden md:flex flex-col justify-between border-r" style={{ background: "#0F1420", borderColor: "#1E2535" }}>
         <div>
-          <div className="h-20 flex items-center px-8 border-b border-slate-100">
-            <div className="text-xl font-black tracking-tight flex items-center gap-2">
+          <div className="h-16 flex items-center px-5 border-b" style={{ borderColor: "#1E2535" }}>
+            <div className="flex items-center gap-2.5">
               <VaultLogo />
-              VaultReach
+              <span className="text-white font-black text-lg tracking-tight">VaultReach</span>
             </div>
           </div>
-          
-          <div className="p-4 space-y-2 mt-4">
-            <button 
-              onClick={() => setActiveTab('overview')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'overview' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}
-            >
-              <BarChart3 size={20} /> Performance
-            </button>
-            <button 
-              onClick={() => setActiveTab('targeting')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'targeting' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}
-            >
-              <Target size={20} /> Lead Targeting
-            </button>
-            <button 
-              onClick={() => setActiveTab('brain')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${activeTab === 'brain' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}
-            >
-              <BrainCircuit size={20} /> AI Brain
-            </button>
+
+          {/* Agent status pill */}
+          <div className="mx-4 mt-5 mb-2 px-4 py-3 rounded-2xl flex items-center gap-2.5" style={{ background: "#0D2818", border: "1px solid #166534" }}>
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+            <div>
+              <div className="text-emerald-400 font-bold text-xs">Agent Active</div>
+              <div className="text-slate-400 text-[10px] font-medium">Prospecting now</div>
+            </div>
+            <Bot size={14} className="text-emerald-400 ml-auto" />
           </div>
+
+          <nav className="p-3 space-y-1 mt-2">
+            {navItems.map(({ id, icon: Icon, label }) => (
+              <button
+                key={id}
+                onClick={() => setActiveTab(id)}
+                className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all text-left ${
+                  activeTab === id
+                    ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/30"
+                    : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
+                }`}
+              >
+                <Icon size={16} />
+                {label}
+                {activeTab === id && <ChevronRight size={14} className="ml-auto" />}
+              </button>
+            ))}
+          </nav>
         </div>
 
-        <div className="p-4 border-t border-slate-100">
+        <div className="p-3 border-t" style={{ borderColor: "#1E2535" }}>
+          {/* User chip */}
+          <div className="flex items-center gap-3 px-3 py-2 rounded-xl mb-2" style={{ background: "#1E2535" }}>
+            <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-xs shrink-0">
+              {userInitial}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-white font-semibold text-xs truncate">{session?.user?.name ?? "User"}</div>
+              <div className="text-slate-400 text-[10px] truncate">{session?.user?.email}</div>
+            </div>
+          </div>
           <button
-            onClick={() => signOut({ callbackUrl: '/' })}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-slate-500 hover:bg-red-50 hover:text-red-600 transition-all"
+            onClick={() => signOut({ callbackUrl: "/" })}
+            className="w-full flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-xs text-slate-500 hover:text-red-400 hover:bg-red-400/5 transition-all"
           >
-            <LogOut size={20} /> Disconnect
+            <LogOut size={14} /> Sign Out
           </button>
         </div>
       </aside>
 
-      {/* MAIN CONTENT AREA */}
-      <main className="flex-1 overflow-y-auto relative">
-        {/* Top Header */}
-        <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-20 flex items-center justify-between px-8 md:px-12">
-          <h2 className="text-2xl font-extrabold capitalize text-slate-800">
-            {activeTab === 'brain' ? 'AI Messaging Brain' : activeTab}
-          </h2>
+      {/* MAIN */}
+      <main className="flex-1 overflow-y-auto">
+
+        {/* Header */}
+        <header className="h-16 sticky top-0 z-20 flex items-center justify-between px-8 border-b backdrop-blur-lg" style={{ background: "rgba(11,15,26,0.85)", borderColor: "#1E2535" }}>
+          <div>
+            <div className="text-white font-extrabold text-base">{activeTab === "brain" ? "AI Messaging Brain" : activeTab === "targeting" ? "Lead Targeting" : "Performance Overview"}</div>
+            <div className="text-slate-500 text-xs font-medium">VaultReach Campaign Dashboard</div>
+          </div>
           <div className="flex items-center gap-3">
-            <span className="bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-full text-xs font-bold border border-emerald-200 flex items-center gap-2 shadow-sm">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              Agent Active
-            </span>
-            <div className="w-10 h-10 rounded-full bg-indigo-100 border-2 border-white shadow-sm flex items-center justify-center text-indigo-700 font-bold">
-              {userInitial}
+            <div className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-slate-400 border border-slate-700 rounded-full px-3 py-1.5">
+              <Clock size={11} />
+              <AnimatedNumber value={Math.round(hoursSaved)} /> hrs saved
             </div>
           </div>
         </header>
 
-        <div className="p-8 md:p-12 max-w-5xl mx-auto">
+        <div className="p-8 max-w-6xl mx-auto">
           <AnimatePresence mode="wait">
-            
-            {/* VIEW 1: OVERVIEW */}
-            {activeTab === 'overview' && (
-              <motion.div 
-                key="overview"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="space-y-8"
-              >
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-white p-6 rounded-2xl shadow-soft border border-slate-200">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="bg-indigo-50 p-3 rounded-xl text-indigo-600"><Bot size={24} /></div>
-                      <span className="text-xs font-bold text-emerald-500 bg-emerald-50 px-2 py-1 rounded-lg">Live</span>
-                    </div>
-                    <div className="text-3xl font-black text-slate-800 mb-1">{analytics.emailsSent.toLocaleString()}</div>
-                    <div className="text-sm font-semibold text-slate-500">Emails Sent</div>
-                  </div>
-                  
-                  <div className="bg-white p-6 rounded-2xl shadow-soft border border-slate-200">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="bg-amber-50 p-3 rounded-xl text-amber-500"><Mail size={24} /></div>
-                      <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-lg">Running</span>
-                    </div>
-                    <div className="text-3xl font-black text-slate-800 mb-1">{analytics.replies.toLocaleString()}</div>
-                    <div className="text-sm font-semibold text-slate-500">Positive Replies</div>
-                  </div>
 
-                  <div className="bg-indigo-600 p-6 rounded-2xl shadow-float border border-indigo-500 text-white relative overflow-hidden">
-                    <div className="absolute -right-6 -top-6 text-indigo-500/30">
-                      <Calendar size={120} />
-                    </div>
-                    <div className="relative z-10">
-                      <div className="flex justify-between items-start mb-4">
-                        <div className="bg-white/20 p-3 rounded-xl text-white"><TrendingUp size={24} /></div>
+            {/* ─── OVERVIEW ─── */}
+            {activeTab === "overview" && (
+              <motion.div key="overview" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} className="space-y-6">
+
+                {/* Hero greeting */}
+                <div className="rounded-3xl p-6 relative overflow-hidden" style={{ background: "linear-gradient(135deg,#312e81 0%,#1e1b4b 60%,#0B0F1A 100%)", border: "1px solid #4338ca40" }}>
+                  <div className="absolute -right-8 -top-8 opacity-10">
+                    <Zap size={180} className="text-indigo-300" />
+                  </div>
+                  <div className="relative">
+                    <div className="text-indigo-300 font-semibold text-sm mb-1">{getGreeting()}, {userName} 👋</div>
+                    <h1 className="text-white font-black text-2xl mb-2">Your AI sales engine is running 24/7.</h1>
+                    <p className="text-indigo-200 text-sm font-medium max-w-lg">
+                      While you focus on delivering great work, VaultReach is scraping leads, writing personalized outreach, and filling your pipeline around the clock.
+                    </p>
+                    {analytics.emailsSent === 0 && (
+                      <div className="mt-4 inline-flex items-center gap-2 bg-indigo-500/20 border border-indigo-500/30 rounded-xl px-4 py-2 text-indigo-200 text-xs font-bold">
+                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+                        Warming up — your first batch of emails typically sends within 24 hours of setup.
                       </div>
-                      <div className="text-4xl font-black mb-1">{analytics.meetings}</div>
-                      <div className="text-sm font-semibold text-indigo-200">Meetings Booked</div>
-                    </div>
+                    )}
                   </div>
                 </div>
 
-                <div className="bg-white rounded-3xl shadow-soft border border-slate-200 overflow-hidden">
-                  <div className="bg-slate-50 px-6 py-4 border-b border-slate-200 flex justify-between items-center">
-                    <h3 className="font-bold text-slate-800">Recent Positive Replies</h3>
-                  </div>
-                  <div className="divide-y divide-slate-100">
-                    {analytics.replies === 0 ? (
-                      <div className="p-12 text-center text-slate-400 font-semibold">
-                        No replies yet — your SDR is warming up! 🚀
-                      </div>
-                    ) : (
-                      [
-                        { name: "Sarah Jenkins", role: "CEO at Horizon Roofers", preview: "Yes, we actually need this right now. Are you free to call on Tuesday?", time: "2 hours ago" },
-                        { name: "Mike O&apos;Connor", role: "Partner at Local CPA", preview: "I&apos;d love to learn more. Can you send over some pricing on your package?", time: "5 hours ago" },
-                        { name: "Jessica T.", role: "Founder, Bloom Agency", preview: "Sounds interesting. Let&apos;s schedule a quick 10 min intro for next week.", time: "1 day ago" }
-                      ].map((reply, i) => (
-                        <div key={i} className="p-6 hover:bg-slate-50 transition-colors flex justify-between items-center">
-                          <div>
-                            <div className="font-bold text-slate-900">{reply.name} <span className="text-slate-400 font-medium text-sm ml-2">{reply.role}</span></div>
-                            <div className="text-sm font-medium text-slate-600 mt-1">{reply.preview}</div>
-                          </div>
-                          <div className="text-xs font-bold text-slate-400">{reply.time}</div>
+                {/* KPI Grid */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  {kpis.map((kpi) => (
+                    <div key={kpi.label} className={`rounded-2xl p-5 border bg-gradient-to-br ${kpi.gradient} ${kpi.border} relative overflow-hidden`}>
+                      <div className="flex justify-between items-start mb-4">
+                        <div className={`p-2 rounded-xl bg-white/5 ${kpi.iconColor}`}>
+                          <kpi.icon size={18} />
                         </div>
-                      ))
-                    )}
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${kpi.badgeColor}`}>
+                          {kpi.badge}
+                        </span>
+                      </div>
+                      <div className="text-white font-black text-3xl mb-0.5">
+                        {kpi.format === "currency" ? (
+                          kpi.value === 0 ? "$0" : `$${kpi.value.toLocaleString()}`
+                        ) : (
+                          <AnimatedNumber value={kpi.value} />
+                        )}
+                      </div>
+                      <div className="text-slate-300 font-bold text-sm mb-2">{kpi.label}</div>
+                      <div className="text-slate-500 text-xs font-medium">{kpi.sub}</div>
+                      {kpi.value > 0 && (
+                        <div className="absolute top-4 right-4 opacity-20">
+                          <ArrowUpRight size={40} className="text-white" />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Time Saved Banner */}
+                <div className="rounded-2xl px-6 py-4 flex items-center justify-between" style={{ background: "#131929", border: "1px solid #1E2535" }}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center text-amber-400">
+                      <Clock size={18} />
+                    </div>
+                    <div>
+                      <div className="text-white font-bold text-sm">Hours Saved vs. Hiring an SDR</div>
+                      <div className="text-slate-400 text-xs">Based on your email volume at ~30 min/prospect manually</div>
+                    </div>
                   </div>
+                  <div className="text-right">
+                    <div className="text-amber-400 font-black text-2xl">
+                      {analytics.emailsSent === 0 ? "14+" : `${Math.round(hoursSaved)}`}
+                    </div>
+                    <div className="text-slate-500 text-xs font-semibold">hrs / wk est.</div>
+                  </div>
+                </div>
+
+                {/* Recent Replies */}
+                <div className="rounded-2xl overflow-hidden" style={{ background: "#131929", border: "1px solid #1E2535" }}>
+                  <div className="px-6 py-4 border-b flex justify-between items-center" style={{ borderColor: "#1E2535" }}>
+                    <h3 className="text-white font-bold text-sm">Recent Positive Replies</h3>
+                    <span className="text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full">AI-monitored</span>
+                  </div>
+                  {analytics.replies === 0 ? (
+                    <div className="p-10 text-center">
+                      <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mx-auto mb-4">
+                        <Mail size={24} className="text-indigo-400" />
+                      </div>
+                      <div className="text-white font-bold text-base mb-1">No replies yet — and that&apos;s normal.</div>
+                      <div className="text-slate-400 text-sm font-medium max-w-xs mx-auto">
+                        Most campaigns see the first interested reply within 48 hours. Your AI is warming up inboxes to maximize deliverability.
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="divide-y" style={{ borderColor: "#1E2535" }}>
+                      {[
+                        { name: "Sarah Jenkins", role: "CEO at Horizon Roofers", preview: "Yes, we actually need this right now. Are you free Tuesday?", time: "2h ago", score: "Hot" },
+                        { name: "Mike O'Connor", role: "Partner at Local CPA", preview: "I'd love to learn more. Can you send over some pricing?", time: "5h ago", score: "Warm" },
+                        { name: "Jessica T.", role: "Founder, Bloom Agency", preview: "Let's schedule a quick 10 min intro for next week.", time: "1d ago", score: "Warm" },
+                      ].map((reply, i) => (
+                        <div key={i} className="px-6 py-4 hover:bg-white/2 transition-colors flex items-center gap-4">
+                          <div className="w-9 h-9 rounded-full bg-indigo-600/30 border border-indigo-500/30 flex items-center justify-center text-indigo-300 font-bold text-sm shrink-0">
+                            {reply.name.charAt(0)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <span className="text-white font-bold text-sm">{reply.name}</span>
+                              <span className="text-slate-500 text-xs">{reply.role}</span>
+                            </div>
+                            <div className="text-slate-400 text-xs truncate">{reply.preview}</div>
+                          </div>
+                          <div className="flex flex-col items-end gap-1 shrink-0">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${reply.score === "Hot" ? "text-red-400 bg-red-400/10 border-red-400/20" : "text-amber-400 bg-amber-400/10 border-amber-400/20"}`}>
+                              {reply.score}
+                            </span>
+                            <span className="text-slate-500 text-[10px]">{reply.time}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </motion.div>
             )}
 
-            {/* VIEW 2: TARGETING */}
-            {activeTab === 'targeting' && (
-              <motion.div 
-                key="targeting"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-              >
-                <div className="bg-white rounded-3xl shadow-soft border border-slate-200 overflow-hidden">
-                  <div className="border-b border-slate-200 p-8 bg-slate-50/50">
-                    <h3 className="text-xl font-bold text-slate-900 mb-2">Ideal Customer Profile (ICP)</h3>
-                    <p className="text-slate-500 font-medium text-sm">Update your targeting parameters at any time. The AI will instantly adjust its Apollo scraping queries.</p>
+            {/* ─── TARGETING ─── */}
+            {activeTab === "targeting" && (
+              <motion.div key="targeting" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
+                <div className="rounded-2xl overflow-hidden" style={{ background: "#131929", border: "1px solid #1E2535" }}>
+                  <div className="px-8 py-6 border-b" style={{ borderColor: "#1E2535" }}>
+                    <h3 className="text-white font-bold text-lg mb-1">Ideal Customer Profile</h3>
+                    <p className="text-slate-400 text-sm">Update your ICP at any time — the AI instantly adjusts its Apollo prospecting queries.</p>
                   </div>
                   <form onSubmit={handleSave} className="p-8 space-y-6">
                     <div>
-                      <label className="flex items-center gap-2 text-sm font-extrabold text-slate-900 mb-2">
-                        Your Business Website
-                      </label>
-                      <input 
-                        type="url" 
-                        value={url}
-                        onChange={(e) => setUrl(e.target.value)}
-                        placeholder="https://acmeplumbing.com" 
-                        className="w-full bg-white border-2 border-slate-200 rounded-xl p-3.5 text-slate-900 placeholder-slate-400 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 outline-none transition-all font-medium"
+                      <label className="block text-sm font-bold text-slate-200 mb-2">Your Business Website</label>
+                      <input
+                        type="url" value={url} onChange={e => setUrl(e.target.value)}
+                        placeholder="https://acmeplumbing.com"
+                        className="w-full rounded-xl p-3.5 text-slate-100 placeholder-slate-500 font-medium outline-none transition-all"
+                        style={{ background: "#0B0F1A", border: "1.5px solid #1E2535" }}
+                        onFocus={e => (e.target.style.borderColor = "#6366F1")}
+                        onBlur={e => (e.target.style.borderColor = "#1E2535")}
                       />
                     </div>
                     <div>
-                      <label className="flex items-center gap-2 text-sm font-extrabold text-slate-900 mb-2">
-                        Who is your perfect customer?
-                      </label>
-                      <textarea 
-                        value={icp}
-                        onChange={(e) => setIcp(e.target.value)}
-                        rows={4}
-                        placeholder="e.g. Restaurants and cafes in Austin, Texas that need commercial plumbing maintenance." 
-                        className="w-full bg-white border-2 border-slate-200 rounded-xl p-3.5 text-slate-900 placeholder-slate-400 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 outline-none transition-all font-medium resize-none"
+                      <label className="block text-sm font-bold text-slate-200 mb-2">Who is your perfect customer?</label>
+                      <textarea
+                        value={icp} onChange={e => setIcp(e.target.value)} rows={4}
+                        placeholder="e.g. Restaurants and cafes in Austin, Texas with 5–50 employees needing commercial plumbing services."
+                        className="w-full rounded-xl p-3.5 text-slate-100 placeholder-slate-500 font-medium outline-none transition-all resize-none"
+                        style={{ background: "#0B0F1A", border: "1.5px solid #1E2535" }}
+                        onFocus={e => (e.target.style.borderColor = "#6366F1")}
+                        onBlur={e => (e.target.style.borderColor = "#1E2535")}
                       />
                     </div>
-                    <div className="pt-4 flex items-center gap-4">
-                      <button type="submit" disabled={isSaving} className="flex items-center gap-2 bg-indigo-600 text-white font-bold py-3 px-8 rounded-xl shadow-md hover:bg-indigo-700 transition-colors disabled:opacity-70">
-                        {isSaving ? 'Saving...' : <><Save size={18} /> Update Targeting</>}
+                    <div className="flex items-center gap-4 pt-2">
+                      <button type="submit" disabled={isSaving} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-7 rounded-xl transition-all disabled:opacity-60 text-sm">
+                        {isSaving ? "Saving..." : <><Save size={16} /> Update Targeting</>}
                       </button>
                       {saveSuccess && (
-                        <span className="flex items-center gap-1 text-emerald-600 font-bold text-sm">
-                          <CheckCircle size={16} /> Saved to database!
+                        <span className="flex items-center gap-1.5 text-emerald-400 font-bold text-sm">
+                          <CheckCircle size={15} /> Saved!
                         </span>
                       )}
                     </div>
@@ -265,67 +386,60 @@ export default function Dashboard() {
               </motion.div>
             )}
 
-            {/* VIEW 3: AI BRAIN */}
-            {activeTab === 'brain' && (
-              <motion.div 
-                key="brain"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-              >
-                <div className="bg-white rounded-3xl shadow-soft border border-slate-200 overflow-hidden">
-                  <div className="border-b border-slate-200 p-8 bg-indigo-50/30">
-                    <h3 className="text-xl font-bold text-slate-900 mb-2">Messaging Controls</h3>
-                    <p className="text-slate-500 font-medium text-sm">Control exactly how your digital employee speaks to prospects and handles complex replies.</p>
+            {/* ─── AI BRAIN ─── */}
+            {activeTab === "brain" && (
+              <motion.div key="brain" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
+                <div className="rounded-2xl overflow-hidden" style={{ background: "#131929", border: "1px solid #1E2535" }}>
+                  <div className="px-8 py-6 border-b" style={{ borderColor: "#1E2535" }}>
+                    <h3 className="text-white font-bold text-lg mb-1">Messaging Controls</h3>
+                    <p className="text-slate-400 text-sm">Control exactly how your digital SDR speaks to prospects and handles replies.</p>
                   </div>
                   <form onSubmit={handleSave} className="p-8 space-y-8">
-                    
-                    {/* Tone Selector */}
                     <div>
-                      <label className="flex items-center gap-2 text-sm font-extrabold text-slate-900 mb-4">
-                        Brand Tone of Voice
-                      </label>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <label className="block text-sm font-bold text-slate-200 mb-4">Brand Tone of Voice</label>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         {[
-                          { id: 'professional', label: 'Highly Professional', desc: 'Direct, corporate, respectful.' },
-                          { id: 'casual', label: 'Casual & Friendly', desc: 'Relaxed, uses emojis, enthusiastic.' },
-                          { id: 'urgent', label: 'Urgent & Direct', desc: 'Short sentences, to the point.' }
+                          { id: "professional", label: "Highly Professional", desc: "Direct, polished, corporate." },
+                          { id: "casual", label: "Casual & Friendly", desc: "Warm, relaxed, uses first names." },
+                          { id: "urgent", label: "Urgent & Direct", desc: "Short sentences, strong CTA." },
                         ].map(t => (
-                          <div 
-                            key={t.id}
-                            onClick={() => setTone(t.id)}
-                            className={`cursor-pointer border-2 rounded-xl p-4 transition-all ${tone === t.id ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-200 hover:border-slate-300'}`}
+                          <div
+                            key={t.id} onClick={() => setTone(t.id)}
+                            className="cursor-pointer rounded-xl p-4 transition-all"
+                            style={{
+                              background: tone === t.id ? "#1e1b4b" : "#0B0F1A",
+                              border: `1.5px solid ${tone === t.id ? "#6366F1" : "#1E2535"}`
+                            }}
                           >
-                            <div className={`font-bold mb-1 ${tone === t.id ? 'text-indigo-700' : 'text-slate-800'}`}>{t.label}</div>
-                            <div className="text-xs font-semibold text-slate-500">{t.desc}</div>
+                            <div className={`font-bold text-sm mb-1 ${tone === t.id ? "text-indigo-300" : "text-slate-300"}`}>{t.label}</div>
+                            <div className="text-xs text-slate-500 font-medium">{t.desc}</div>
                           </div>
                         ))}
                       </div>
                     </div>
-
-                    {/* Auto Reply Guardrails */}
                     <div>
-                      <label className="flex items-center gap-2 text-sm font-extrabold text-slate-900 mb-2">
-                        <MessageSquareText size={16} className="text-indigo-600" />
-                        Auto-Reply Guardrails (Custom Instructions)
+                      <label className="block text-sm font-bold text-slate-200 mb-1">
+                        Auto-Reply Guardrails
                       </label>
-                      <p className="text-xs text-slate-500 font-medium mb-3">Provide specific rules for the AI when handling replies, e.g., &quot;Never offer a discount&quot; or &quot;If asked for pricing, say it starts at $5,000&quot;.</p>
-                      <textarea 
-                        value={rules}
-                        onChange={(e) => setRules(e.target.value)}
-                        rows={4}
-                        placeholder="Always try to push them to a Wednesday or Thursday phone call. Do not mention specific product features unless they explicitly ask." 
-                        className="w-full bg-white border-2 border-slate-200 rounded-xl p-3.5 text-slate-900 placeholder-slate-400 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-600 outline-none transition-all font-medium resize-none"
+                      <p className="text-xs text-slate-500 mb-3 font-medium">
+                        Custom rules the AI follows when handling replies. e.g., &quot;Never offer a discount&quot; or &quot;If asked for pricing, say it starts at $5,000.&quot;
+                      </p>
+                      <textarea
+                        value={rules} onChange={e => setRules(e.target.value)} rows={5}
+                        placeholder="Always push for Wednesday or Thursday calls. Do not mention specific product features unless asked directly."
+                        className="w-full rounded-xl p-3.5 text-slate-100 placeholder-slate-500 font-medium outline-none transition-all resize-none"
+                        style={{ background: "#0B0F1A", border: "1.5px solid #1E2535" }}
+                        onFocus={e => (e.target.style.borderColor = "#6366F1")}
+                        onBlur={e => (e.target.style.borderColor = "#1E2535")}
                       />
                     </div>
-                    
-                    <div className="pt-2 flex items-center gap-4">
-                      <button type="submit" disabled={isSaving} className="flex items-center gap-2 bg-indigo-600 text-white font-bold py-3 px-8 rounded-xl shadow-md hover:bg-indigo-700 transition-colors disabled:opacity-70">
-                        {isSaving ? 'Training AI...' : <><Save size={18} /> Train AI Assistant</>}
+                    <div className="flex items-center gap-4 pt-2">
+                      <button type="submit" disabled={isSaving} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-7 rounded-xl transition-all disabled:opacity-60 text-sm">
+                        {isSaving ? "Saving..." : <><Save size={16} /> Train AI Assistant</>}
                       </button>
                       {saveSuccess && (
-                        <span className="flex items-center gap-1 text-emerald-600 font-bold text-sm">
-                          <CheckCircle size={16} /> Saved to database!
+                        <span className="flex items-center gap-1.5 text-emerald-400 font-bold text-sm">
+                          <CheckCircle size={15} /> Saved!
                         </span>
                       )}
                     </div>
@@ -337,7 +451,6 @@ export default function Dashboard() {
           </AnimatePresence>
         </div>
       </main>
-
     </div>
   )
 }
