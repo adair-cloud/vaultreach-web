@@ -49,7 +49,15 @@ export default function Dashboard() {
   const [tone, setTone] = useState("professional")
   const [rules, setRules] = useState("")
   const [isSaving, setIsSaving] = useState(false)
-  const [analytics, setAnalytics] = useState({ emailsSent: 0, replies: 0, meetings: 0 })
+  const [saveError, setSaveError] = useState(false)
+  const [hasIcp, setHasIcp] = useState(false)
+  const [lastPing, setLastPing] = useState<string | null>(null)
+  const [analytics, setAnalytics] = useState<{
+    emailsSent: number
+    replies: number
+    meetings: number
+    recentReplies: { name: string; role: string; preview: string; score: string; time: string }[]
+  }>({ emailsSent: 0, replies: 0, meetings: 0, recentReplies: [] })
 
   useEffect(() => {
     async function load() {
@@ -59,8 +67,10 @@ export default function Dashboard() {
         if (campaign) {
           setUrl(campaign.websiteUrl ?? "")
           setIcp(campaign.targetIndustry ?? "")
-          setTone(campaign.targetTitles ?? "professional")
-          setRules(campaign.employeeRange ?? "")
+          setTone(campaign.tone ?? "professional")
+          setRules(campaign.rules ?? "")
+          setHasIcp(Boolean(campaign.targetIndustry?.trim()))
+          setLastPing(campaign.lastPing ?? null)
         }
       }
       const analyticsRes = await fetch("/api/analytics")
@@ -76,16 +86,25 @@ export default function Dashboard() {
     e.preventDefault()
     setIsSaving(true)
     try {
-      await fetch("/api/campaigns", {
+      const res = await fetch("/api/campaigns", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          websiteUrl: url, targetIndustry: icp, targetTitles: tone,
-          employeeRange: rules, targetLocations: "",
-        }),
+        // Each tab only sends the fields it owns — selective merge in the API
+        // prevents the Lead Targeting save from wiping tone/rules and vice versa
+        body: JSON.stringify(
+          activeTab === "brain"
+            ? { tone, rules }
+            : { websiteUrl: url, targetIndustry: icp, targetLocations: "" }
+        ),
       })
+      if (!res.ok) throw new Error("Save failed")
+      if (activeTab === "targeting" && icp.trim()) setHasIcp(true)
       setSaveSuccess(true)
+      setSaveError(false)
       setTimeout(() => setSaveSuccess(false), 3000)
+    } catch {
+      setSaveError(true)
+      setTimeout(() => setSaveError(false), 4000)
     } finally {
       setIsSaving(false)
     }
@@ -95,6 +114,23 @@ export default function Dashboard() {
   const userInitial = (session?.user?.name ?? "U").charAt(0).toUpperCase()
   const pipelineValue = analytics.meetings * 3000
   const hoursSaved = Math.max(analytics.emailsSent * 0.5, 0)
+
+  // Derive agent status from the Python worker's last heartbeat
+  const agentStatus: "active" | "idle" | "offline" | "unknown" = (() => {
+    if (!lastPing) return "unknown"
+    const ageMs = Date.now() - new Date(lastPing).getTime()
+    const ageHrs = ageMs / (1000 * 60 * 60)
+    if (ageHrs < 2)   return "active"
+    if (ageHrs < 24)  return "idle"
+    return "offline"
+  })()
+
+  const agentStatusConfig = {
+    active:  { dot: "bg-emerald-400 animate-pulse", label: "Agent Active",  sub: "Prospecting now",        bg: "#0D2818", border: "#166534",  text: "text-emerald-400" },
+    idle:    { dot: "bg-amber-400",                label: "Agent Idle",    sub: "Last ran < 24 hrs ago",  bg: "#1a1500", border: "#78350f",  text: "text-amber-400"  },
+    offline: { dot: "bg-red-500",                  label: "Agent Offline", sub: "No ping in > 24 hrs",    bg: "#1a0a0a", border: "#7f1d1d",  text: "text-red-400"   },
+    unknown: { dot: "bg-slate-500",                label: "Not Started",   sub: "Awaiting first run",     bg: "#131929", border: "#1E2535", text: "text-slate-400" },
+  }
 
   const navItems = [
     { id: "overview", icon: BarChart3, label: "Overview" },
@@ -150,15 +186,23 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Agent status pill */}
-          <div className="mx-4 mt-5 mb-2 px-4 py-3 rounded-2xl flex items-center gap-2.5" style={{ background: "#0D2818", border: "1px solid #166534" }}>
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-            <div>
-              <div className="text-emerald-400 font-bold text-xs">Agent Active</div>
-              <div className="text-slate-400 text-[10px] font-medium">Prospecting now</div>
-            </div>
-            <Bot size={14} className="text-emerald-400 ml-auto" />
-          </div>
+          {/* Agent status pill — driven by real lastPing from the Python worker */}
+          {(() => {
+            const s = agentStatusConfig[agentStatus]
+            return (
+              <div
+                className="mx-4 mt-5 mb-2 px-4 py-3 rounded-2xl flex items-center gap-2.5"
+                style={{ background: s.bg, border: `1px solid ${s.border}` }}
+              >
+                <span className={`w-2 h-2 rounded-full shrink-0 ${s.dot}`} />
+                <div>
+                  <div className={`font-bold text-xs ${s.text}`}>{s.label}</div>
+                  <div className="text-slate-400 text-[10px] font-medium">{s.sub}</div>
+                </div>
+                <Bot size={14} className={`${s.text} ml-auto`} />
+              </div>
+            )
+          })()}
 
           <nav className="p-3 space-y-1 mt-2">
             {navItems.map(({ id, icon: Icon, label }) => (
@@ -223,7 +267,58 @@ export default function Dashboard() {
             {activeTab === "overview" && (
               <motion.div key="overview" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} className="space-y-6">
 
-                {/* Hero greeting */}
+                {/* ── COLD-START: Setup Checklist (shown when no ICP saved yet) ── */}
+                {!hasIcp ? (
+                  <div className="rounded-3xl p-8" style={{ background: "linear-gradient(135deg,#1a1f35 0%,#0F1420 100%)", border: "1px solid #2d3a55" }}>
+                    <div className="mb-6">
+                      <div className="text-indigo-300 font-semibold text-sm mb-1">{getGreeting()}, {userName} 👋</div>
+                      <h1 className="text-white font-black text-2xl mb-1">Let&apos;s get your AI SDR running.</h1>
+                      <p className="text-slate-400 text-sm font-medium">Complete these 3 steps and your engine will start prospecting within 24 hours.</p>
+                    </div>
+                    <div className="space-y-3">
+                      {/* Step 1 — always complete (they're logged in) */}
+                      <div className="flex items-center gap-4 rounded-2xl px-5 py-4" style={{ background: "#0D2818", border: "1px solid #166534" }}>
+                        <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center shrink-0">
+                          <CheckCircle size={16} className="text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="text-white font-bold text-sm">Connected Google Account</div>
+                          <div className="text-emerald-400 text-xs font-medium">{session?.user?.email}</div>
+                        </div>
+                        <span className="text-[10px] font-bold text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 px-2 py-0.5 rounded-full">Done</span>
+                      </div>
+                      {/* Step 2 — CTA to go fill in the ICP */}
+                      <div className="flex items-center gap-4 rounded-2xl px-5 py-4" style={{ background: "#131929", border: "1.5px solid #6366F1" }}>
+                        <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center shrink-0">
+                          <Target size={16} className="text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="text-white font-bold text-sm">Set your Ideal Customer Profile</div>
+                          <div className="text-slate-400 text-xs font-medium">Tell the AI who to target — takes 60 seconds.</div>
+                        </div>
+                        <button
+                          onClick={() => setActiveTab("targeting")}
+                          className="shrink-0 flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-4 py-2 rounded-xl transition-all"
+                        >
+                          Set Up <ChevronRight size={12} />
+                        </button>
+                      </div>
+                      {/* Step 3 — locked until ICP is saved */}
+                      <div className="flex items-center gap-4 rounded-2xl px-5 py-4 opacity-40" style={{ background: "#131929", border: "1px solid #1E2535" }}>
+                        <div className="w-8 h-8 rounded-full border-2 border-slate-600 flex items-center justify-center shrink-0">
+                          <Zap size={14} className="text-slate-500" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="text-slate-300 font-bold text-sm">AI warming up &amp; prospecting</div>
+                          <div className="text-slate-500 text-xs font-medium">Unlocks after Step 2 is complete.</div>
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-500 bg-slate-500/10 border border-slate-500/20 px-2 py-0.5 rounded-full">Locked</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                {/* Hero greeting — only shown once ICP is configured */}
                 <div className="rounded-3xl p-6 relative overflow-hidden" style={{ background: "linear-gradient(135deg,#312e81 0%,#1e1b4b 60%,#0B0F1A 100%)", border: "1px solid #4338ca40" }}>
                   <div className="absolute -right-8 -top-8 opacity-10">
                     <Zap size={180} className="text-indigo-300" />
@@ -281,24 +376,30 @@ export default function Dashboard() {
                     </div>
                     <div>
                       <div className="text-white font-bold text-sm">Hours Saved vs. Hiring an SDR</div>
-                      <div className="text-slate-400 text-xs">Based on your email volume at ~30 min/prospect manually</div>
+                      <div className="text-slate-400 text-xs">
+                        {analytics.emailsSent === 0
+                          ? "Calculated once outreach begins"
+                          : "Based on your email volume at ~30 min/prospect manually"}
+                      </div>
                     </div>
                   </div>
                   <div className="text-right">
                     <div className="text-amber-400 font-black text-2xl">
-                      {analytics.emailsSent === 0 ? "14+" : `${Math.round(hoursSaved)}`}
+                      {analytics.emailsSent === 0 ? "—" : `${Math.round(hoursSaved)}`}
                     </div>
-                    <div className="text-slate-500 text-xs font-semibold">hrs / wk est.</div>
+                    <div className="text-slate-500 text-xs font-semibold">
+                      {analytics.emailsSent === 0 ? "not yet" : "hrs / wk est."}
+                    </div>
                   </div>
                 </div>
 
-                {/* Recent Replies */}
+                {/* Recent Replies — maps over real DB records, no hardcoded data */}
                 <div className="rounded-2xl overflow-hidden" style={{ background: "#131929", border: "1px solid #1E2535" }}>
                   <div className="px-6 py-4 border-b flex justify-between items-center" style={{ borderColor: "#1E2535" }}>
                     <h3 className="text-white font-bold text-sm">Recent Positive Replies</h3>
                     <span className="text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full">AI-monitored</span>
                   </div>
-                  {analytics.replies === 0 ? (
+                  {analytics.recentReplies.length === 0 ? (
                     <div className="p-10 text-center">
                       <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mx-auto mb-4">
                         <Mail size={24} className="text-indigo-400" />
@@ -310,11 +411,7 @@ export default function Dashboard() {
                     </div>
                   ) : (
                     <div className="divide-y" style={{ borderColor: "#1E2535" }}>
-                      {[
-                        { name: "Sarah Jenkins", role: "CEO at Horizon Roofers", preview: "Yes, we actually need this right now. Are you free Tuesday?", time: "2h ago", score: "Hot" },
-                        { name: "Mike O'Connor", role: "Partner at Local CPA", preview: "I'd love to learn more. Can you send over some pricing?", time: "5h ago", score: "Warm" },
-                        { name: "Jessica T.", role: "Founder, Bloom Agency", preview: "Let's schedule a quick 10 min intro for next week.", time: "1d ago", score: "Warm" },
-                      ].map((reply, i) => (
+                      {analytics.recentReplies.map((reply, i) => (
                         <div key={i} className="px-6 py-4 hover:bg-white/2 transition-colors flex items-center gap-4">
                           <div className="w-9 h-9 rounded-full bg-indigo-600/30 border border-indigo-500/30 flex items-center justify-center text-indigo-300 font-bold text-sm shrink-0">
                             {reply.name.charAt(0)}
@@ -327,7 +424,11 @@ export default function Dashboard() {
                             <div className="text-slate-400 text-xs truncate">{reply.preview}</div>
                           </div>
                           <div className="flex flex-col items-end gap-1 shrink-0">
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${reply.score === "Hot" ? "text-red-400 bg-red-400/10 border-red-400/20" : "text-amber-400 bg-amber-400/10 border-amber-400/20"}`}>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                              reply.score === "Hot"
+                                ? "text-red-400 bg-red-400/10 border-red-400/20"
+                                : "text-amber-400 bg-amber-400/10 border-amber-400/20"
+                            }`}>
                               {reply.score}
                             </span>
                             <span className="text-slate-500 text-[10px]">{reply.time}</span>
@@ -337,6 +438,8 @@ export default function Dashboard() {
                     </div>
                   )}
                 </div>
+                  </>
+                )}
               </motion.div>
             )}
 
@@ -379,6 +482,9 @@ export default function Dashboard() {
                         <span className="flex items-center gap-1.5 text-emerald-400 font-bold text-sm">
                           <CheckCircle size={15} /> Saved!
                         </span>
+                      )}
+                      {saveError && (
+                        <span className="text-red-400 font-bold text-sm">Save failed — please try again.</span>
                       )}
                     </div>
                   </form>
@@ -442,6 +548,9 @@ export default function Dashboard() {
                           <CheckCircle size={15} /> Saved!
                         </span>
                       )}
+                      {saveError && (
+                        <span className="text-red-400 font-bold text-sm">Save failed — please try again.</span>
+                      )}
                     </div>
                   </form>
                 </div>
@@ -451,6 +560,31 @@ export default function Dashboard() {
           </AnimatePresence>
         </div>
       </main>
+
+      {/* ── MOBILE BOTTOM TAB BAR (md:hidden) ── */}
+      <nav
+        className="md:hidden fixed bottom-0 left-0 right-0 z-30 flex border-t"
+        style={{ background: "#0F1420", borderColor: "#1E2535" }}
+      >
+        {navItems.map(({ id, icon: Icon, label }) => (
+          <button
+            key={id}
+            onClick={() => setActiveTab(id)}
+            className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 text-[10px] font-bold transition-all ${
+              activeTab === id ? "text-indigo-400" : "text-slate-500"
+            }`}
+          >
+            <div
+              className={`p-1.5 rounded-xl transition-all ${
+                activeTab === id ? "bg-indigo-600/20" : "bg-transparent"
+              }`}
+            >
+              <Icon size={18} />
+            </div>
+            {label}
+          </button>
+        ))}
+      </nav>
     </div>
   )
 }

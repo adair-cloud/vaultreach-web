@@ -11,7 +11,7 @@ export async function GET() {
 
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
-    include: { campaigns: { include: { analytics: true } } }
+    include: { campaigns: { include: { analytics: true } } },
   })
 
   if (!user) return NextResponse.json({ campaign: null })
@@ -27,31 +27,52 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json()
-  const { websiteUrl, targetIndustry, targetTitles, employeeRange, targetLocations, tone, rules } = body
+  const {
+    websiteUrl,
+    targetIndustry,
+    targetTitles,
+    employeeRange,
+    targetLocations,
+    // AI Brain fields — now stored in their own dedicated columns
+    tone,
+    rules,
+  } = body
 
   const user = await prisma.user.findUnique({ where: { email: session.user.email } })
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 })
 
-  // Upsert: update if exists, create if not
   const existing = await prisma.campaign.findFirst({ where: { userId: user.id } })
 
   let campaign
   if (existing) {
+    // Selectively merge: only update fields that are actually provided in this request.
+    // This means saving from the "Lead Targeting" tab won't wipe the AI Brain tone/rules,
+    // and saving from the "AI Brain" tab won't wipe ICP fields.
     campaign = await prisma.campaign.update({
       where: { id: existing.id },
-      data: { websiteUrl, targetIndustry, targetTitles, employeeRange, targetLocations }
+      data: {
+        ...(websiteUrl      !== undefined && { websiteUrl }),
+        ...(targetIndustry  !== undefined && { targetIndustry }),
+        ...(targetTitles    !== undefined && { targetTitles }),
+        ...(employeeRange   !== undefined && { employeeRange }),
+        ...(targetLocations !== undefined && { targetLocations }),
+        ...(tone            !== undefined && { tone }),
+        ...(rules           !== undefined && { rules }),
+      },
     })
   } else {
     campaign = await prisma.campaign.create({
       data: {
-        userId: user.id,
-        websiteUrl: websiteUrl ?? "",
-        targetIndustry: targetIndustry ?? tone ?? "",
-        targetTitles: targetTitles ?? rules ?? "",
-        employeeRange: employeeRange ?? "1-50",
+        userId:          user.id,
+        websiteUrl:      websiteUrl      ?? "",
+        targetIndustry:  targetIndustry  ?? "",
+        targetTitles:    targetTitles    ?? "",
+        employeeRange:   employeeRange   ?? "1-50",
         targetLocations: targetLocations ?? "",
-        status: "active"
-      }
+        tone:            tone            ?? "professional",
+        rules:           rules           ?? null,
+        status:          "active",
+      },
     })
   }
 

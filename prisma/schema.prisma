@@ -60,18 +60,24 @@ model VerificationToken {
 }
 
 model Campaign {
-  id                    String   @id @default(cuid())
+  id                    String    @id @default(cuid())
   userId                String
-  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  status                String   @default("inactive") // active, inactive
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status                String    @default("inactive") // active, inactive
   targetIndustry        String
   targetTitles          String
   employeeRange         String
   targetLocations       String
   websiteUrl            String?
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  // AI Brain settings — stored in their own columns, not hijacking ICP fields
+  tone                  String    @default("professional")
+  rules                 String?   @db.Text
+  // Worker heartbeat — updated by the Python worker each cycle
+  lastPing              DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
   analytics             Analytics[]
+  replies               Reply[]
 }
 
 model Analytics {
@@ -81,4 +87,16 @@ model Analytics {
   date        DateTime @default(now())
   emailsSent  Int      @default(0)
   replies     Int      @default(0)
+  meetings    Int      @default(0)
+}
+
+model Reply {
+  id          String   @id @default(cuid())
+  campaignId  String
+  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  senderName  String
+  senderRole  String?  // e.g. "CEO at Horizon Roofers"
+  preview     String   @db.Text
+  score       String   @default("Warm") // Hot | Warm | Cold
+  receivedAt  DateTime @default(now())
 }
