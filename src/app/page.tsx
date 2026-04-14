@@ -193,6 +193,15 @@ export default function Home() {
         </Link>
       </section>
 
+      {/* Footer */}
+      <footer className="bg-white border-t border-slate-200 py-8 px-8 text-center text-slate-500 flex flex-col items-center gap-4">
+        <div className="flex gap-6 text-sm font-medium">
+          <Link href="/privacy" className="hover:text-indigo-600 transition-colors">Privacy Policy</Link>
+          <Link href="/terms" className="hover:text-indigo-600 transition-colors">Terms of Service</Link>
+        </div>
+        <div className="text-xs">&copy; 2026 VaultReach. All rights reserved.</div>
+      </footer>
+
     </div>
   )
 }
