@@ -51,6 +51,8 @@ export default function Dashboard() {
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState(false)
   const [hasIcp, setHasIcp] = useState(false)
+  const [campaignStatus, setCampaignStatus] = useState<"active" | "inactive">("inactive")
+  const [isTogglingStatus, setIsTogglingStatus] = useState(false)
   const [lastPing, setLastPing] = useState<string | null>(null)
   const [analytics, setAnalytics] = useState<{
     emailsSent: number
@@ -71,6 +73,7 @@ export default function Dashboard() {
           setRules(campaign.rules ?? "")
           setHasIcp(Boolean(campaign.targetIndustry?.trim()))
           setLastPing(campaign.lastPing ?? null)
+          setCampaignStatus(campaign.status === "active" ? "active" : "inactive")
         }
       }
       const analyticsRes = await fetch("/api/analytics")
@@ -335,6 +338,44 @@ export default function Dashboard() {
                         Warming up — your first batch of emails typically sends within 24 hours of setup.
                       </div>
                     )}
+                    {/* ── Pause / Resume Toggle ── */}
+                    <div className="mt-5 flex items-center gap-3">
+                      <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold border ${
+                        campaignStatus === "active"
+                          ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                          : "bg-slate-100 border-slate-200 text-slate-500"
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${
+                          campaignStatus === "active" ? "bg-emerald-500 animate-pulse" : "bg-slate-400"
+                        }`} />
+                        {campaignStatus === "active" ? "Active" : "Paused"}
+                      </div>
+                      <button
+                        id="toggle-campaign-btn"
+                        disabled={isTogglingStatus}
+                        onClick={async () => {
+                          const newStatus = campaignStatus === "active" ? "inactive" : "active"
+                          setIsTogglingStatus(true)
+                          try {
+                            const res = await fetch("/api/campaigns", {
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ status: newStatus }),
+                            })
+                            if (res.ok) setCampaignStatus(newStatus)
+                          } finally {
+                            setIsTogglingStatus(false)
+                          }
+                        }}
+                        className={`text-xs font-bold px-4 py-1.5 rounded-xl border transition-all disabled:opacity-50 ${
+                          campaignStatus === "active"
+                            ? "bg-white border-slate-200 text-slate-700 hover:border-red-300 hover:text-red-600"
+                            : "bg-indigo-600 border-indigo-600 text-white hover:bg-indigo-700"
+                        }`}
+                      >
+                        {isTogglingStatus ? "Updating..." : campaignStatus === "active" ? "Pause Campaign" : "Resume Campaign"}
+                      </button>
+                    </div>
                   </div>
                 </div>
 

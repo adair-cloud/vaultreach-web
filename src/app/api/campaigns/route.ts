@@ -88,3 +88,36 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ campaign })
 }
+
+export async function PATCH(req: Request) {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.email) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  const { status } = await req.json()
+  if (!["active", "inactive"].includes(status)) {
+    return NextResponse.json({ error: "Invalid status. Must be 'active' or 'inactive'." }, { status: 400 })
+  }
+
+  const user = await prisma.user.findUnique({ where: { email: session.user.email } })
+  if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 })
+
+  // Prevent reactivation without an active subscription
+  if (status === "active" && !user.stripeSubscriptionId) {
+    return NextResponse.json(
+      { error: "An active subscription is required.", code: "SUBSCRIPTION_REQUIRED" },
+      { status: 402 }
+    )
+  }
+
+  const campaign = await prisma.campaign.findFirst({ where: { userId: user.id } })
+  if (!campaign) return NextResponse.json({ error: "No campaign found" }, { status: 404 })
+
+  const updated = await prisma.campaign.update({
+    where: { id: campaign.id },
+    data: { status },
+  })
+
+  return NextResponse.json({ campaign: updated })
+}
