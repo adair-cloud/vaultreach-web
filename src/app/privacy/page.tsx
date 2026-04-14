@@ -14,36 +14,59 @@ export default function PrivacyPage() {
       </header>
       <main className="max-w-3xl mx-auto px-8 py-16 prose prose-slate">
         <h1 className="text-4xl font-black text-slate-900 mb-2">Privacy Policy</h1>
-        <p className="text-slate-500 text-sm mb-10">Last updated: April 11, 2026</p>
+        <p className="text-slate-500 text-sm mb-10">Last updated: April 2026</p>
 
         <section className="mb-8">
           <h2 className="text-xl font-bold text-slate-800 mb-3">1. Information We Collect</h2>
-          <p className="text-slate-600 leading-relaxed">When you connect your Google account, we collect your name, email address, and Google OAuth access tokens. These tokens are used solely to send outbound emails on your behalf via the Gmail API. We do not collect or store your Gmail inbox content.</p>
+          <p className="text-slate-600 leading-relaxed">
+            VaultReach ("we," "our," or "us") is a B2B sales outreach platform. When you connect your Google account, we collect your name, email address, and Google OAuth access tokens. These tokens are used solely to authenticate Gmail API calls. We also collect campaign data such as prospect names and message templates authored by you, along with send metadata (timestamps).
+          </p>
         </section>
 
         <section className="mb-8">
-          <h2 className="text-xl font-bold text-slate-800 mb-3">2. How We Use Your Information</h2>
-          <p className="text-slate-600 leading-relaxed">We use your information to operate the VaultReach automated outreach service, including identifying and contacting leads that match your Ideal Customer Profile (ICP), and sending personalized emails through your connected Gmail account.</p>
+          <h2 className="text-xl font-bold text-slate-800 mb-3">2. Gmail Data and Google API Services</h2>
+          <p className="text-slate-600 leading-relaxed mb-4">
+            VaultReach's use of Google APIs, including the Gmail API (<code>gmail.send</code> scope), is limited to sending emails that you explicitly compose and approve within the VaultReach platform, on your behalf, from your own Gmail account.
+          </p>
+          <p className="text-slate-600 leading-relaxed mb-4">
+            We do not read, store, index, scan, share, or sell the contents of your Gmail inbox or any received emails. We do not access your Gmail drafts, labels, contacts, or any data beyond what is required to execute the send action you initiate.
+          </p>
+          <div className="bg-indigo-50 border-l-4 border-indigo-500 p-4 rounded-r-md">
+            <p className="text-indigo-900 text-sm font-medium leading-relaxed">
+              Our use and transfer of information received from Google APIs to any other app will adhere to the Google API Services User Data Policy, including the Limited Use requirements.
+            </p>
+          </div>
         </section>
 
         <section className="mb-8">
-          <h2 className="text-xl font-bold text-slate-800 mb-3">3. Data Storage & Security</h2>
-          <p className="text-slate-600 leading-relaxed">All user data is stored in a secure, encrypted PostgreSQL database hosted on Neon (AWS US East). Access tokens are encrypted at rest. We do not sell or share your data with third parties for advertising purposes.</p>
+          <h2 className="text-xl font-bold text-slate-800 mb-3">3. How We Use Your Information</h2>
+          <p className="text-slate-600 leading-relaxed">
+            We use your information to operate the VaultReach platform, send emails on your behalf when you initiate a send action, and display campaign analytics. We do not sell, rent, or share your data with third parties for marketing.
+          </p>
         </section>
 
         <section className="mb-8">
-          <h2 className="text-xl font-bold text-slate-800 mb-3">4. Google API Scopes</h2>
-          <p className="text-slate-600 leading-relaxed">VaultReach requests the following Google API scopes: <code>gmail.send</code> (to send outbound emails on your behalf) and <code>gmail.readonly</code> (to detect incoming replies). We do not access, read, or store your general email content.</p>
+          <h2 className="text-xl font-bold text-slate-800 mb-3">4. Data Retention & Security</h2>
+          <p className="text-slate-600 leading-relaxed">
+            We retain email send logs (sender, recipient, timestamp, campaign ID) to provide analytics. OAuth access tokens are stored encrypted at rest (AES-256 or equivalent) and are deleted immediately upon account disconnection. We do not retain the content of sent emails beyond what Gmail's Sent folder retains. All data is transmitted over HTTPS/TLS.
+          </p>
         </section>
 
         <section className="mb-8">
-          <h2 className="text-xl font-bold text-slate-800 mb-3">5. Data Deletion</h2>
-          <p className="text-slate-600 leading-relaxed">You may request full deletion of your account and all associated data at any time by emailing us at <a href="mailto:support@vaultreach.ai" className="text-indigo-600 hover:underline">support@vaultreach.ai</a>. Upon request, we will permanently delete your account within 30 days.</p>
+          <h2 className="text-xl font-bold text-slate-800 mb-3">5. User Rights and Google API Revocation</h2>
+          <p className="text-slate-600 leading-relaxed mb-3">You may revoke VaultReach's access to your Google account at any time by:</p>
+          <ol className="list-decimal pl-5 text-slate-600 space-y-2 mb-3">
+            <li>Visiting Account Settings → Connected Accounts within VaultReach and clicking "Disconnect Gmail", OR</li>
+            <li>Visiting <a href="https://myaccount.google.com/permissions" className="text-indigo-600 hover:underline" target="_blank" rel="noopener noreferrer">https://myaccount.google.com/permissions</a> and removing VaultReach.</li>
+          </ol>
+          <p className="text-slate-600 leading-relaxed">
+            Upon revocation, we will delete your stored OAuth tokens within 24 hours. To request full data deletion, email: <a href="mailto:privacy@vaultreach.ai" className="text-indigo-600 hover:underline">privacy@vaultreach.ai</a>.
+          </p>
         </section>
 
         <section className="mb-8">
           <h2 className="text-xl font-bold text-slate-800 mb-3">6. Contact</h2>
-          <p className="text-slate-600 leading-relaxed">For privacy-related questions, contact us at <a href="mailto:support@vaultreach.ai" className="text-indigo-600 hover:underline">support@vaultreach.ai</a>.</p>
+          <p className="text-slate-600 leading-relaxed">For privacy-related questions or data deletion requests, contact us at <a href="mailto:privacy@vaultreach.ai" className="text-indigo-600 hover:underline">privacy@vaultreach.ai</a>.</p>
         </section>
       </main>
       <footer className="border-t border-slate-200 px-8 py-6 text-center text-slate-400 text-sm">
