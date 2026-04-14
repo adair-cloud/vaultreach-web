@@ -43,6 +43,16 @@ export async function POST(req: Request) {
 
   const existing = await prisma.campaign.findFirst({ where: { userId: user.id } })
 
+  // Gate: only users with an active Stripe subscription can create an active campaign.
+  // Existing campaigns (updates) are always allowed through — the subscription was
+  // validated at creation time. This prevents API-level paywall bypass.
+  if (!existing && !user.stripeSubscriptionId) {
+    return NextResponse.json(
+      { error: "An active subscription is required to launch a campaign.", code: "SUBSCRIPTION_REQUIRED" },
+      { status: 402 }
+    )
+  }
+
   let campaign
   if (existing) {
     // Selectively merge: only update fields that are actually provided in this request.
