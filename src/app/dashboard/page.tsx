@@ -89,8 +89,7 @@ export default function Dashboard() {
       const res = await fetch("/api/campaigns", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // Each tab only sends the fields it owns — selective merge in the API
-        // prevents the Lead Targeting save from wiping tone/rules and vice versa
+        // Each tab only sends the fields it owns
         body: JSON.stringify(
           activeTab === "brain"
             ? { tone, rules }
@@ -115,7 +114,7 @@ export default function Dashboard() {
   const pipelineValue = analytics.meetings * 3000
   const hoursSaved = Math.max(analytics.emailsSent * 0.5, 0)
 
-  // Derive agent status from the Python worker's last heartbeat
+  // Derive agent status
   const agentStatus: "active" | "idle" | "offline" | "unknown" = (() => {
     if (!lastPing) return "unknown"
     const ageMs = Date.now() - new Date(lastPing).getTime()
@@ -125,11 +124,12 @@ export default function Dashboard() {
     return "offline"
   })()
 
+  // Light theme configured status colors
   const agentStatusConfig = {
-    active:  { dot: "bg-emerald-400 animate-pulse", label: "Agent Active",  sub: "Prospecting now",        bg: "#0D2818", border: "#166534",  text: "text-emerald-400" },
-    idle:    { dot: "bg-amber-400",                label: "Agent Idle",    sub: "Last ran < 24 hrs ago",  bg: "#1a1500", border: "#78350f",  text: "text-amber-400"  },
-    offline: { dot: "bg-red-500",                  label: "Agent Offline", sub: "No ping in > 24 hrs",    bg: "#1a0a0a", border: "#7f1d1d",  text: "text-red-400"   },
-    unknown: { dot: "bg-slate-500",                label: "Not Started",   sub: "Awaiting first run",     bg: "#131929", border: "#1E2535", text: "text-slate-400" },
+    active:  { dot: "bg-emerald-500 animate-pulse", label: "Agent Active",  sub: "Prospecting now",        bg: "#ecfdf5", border: "#a7f3d0",  text: "text-emerald-700" },
+    idle:    { dot: "bg-amber-500",                label: "Agent Idle",    sub: "Last ran < 24 hrs ago",  bg: "#fffbeb", border: "#fde68a",  text: "text-amber-700"  },
+    offline: { dot: "bg-red-500",                  label: "Agent Offline", sub: "No ping in > 24 hrs",    bg: "#fef2f2", border: "#fecaca",  text: "text-red-700"   },
+    unknown: { dot: "bg-slate-400",                label: "Not Started",   sub: "Awaiting first run",     bg: "#f8fafc", border: "#e2e8f0", text: "text-slate-600" },
   }
 
   const navItems = [
@@ -142,51 +142,51 @@ export default function Dashboard() {
     {
       label: "Emails Sent", value: analytics.emailsSent,
       icon: Mail, format: "number",
-      gradient: "from-indigo-500/20 to-indigo-600/5",
-      border: "border-indigo-500/20", iconColor: "text-indigo-400",
-      badge: "Live", badgeColor: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
+      gradient: "from-white to-slate-50",
+      border: "border-slate-200 text-slate-800 shadow-sm", iconColor: "text-indigo-600 bg-indigo-50",
+      badge: "Live", badgeColor: "text-emerald-700 bg-emerald-50 border-emerald-200",
       sub: analytics.emailsSent === 0 ? "Warming up..." : `${Math.round(analytics.emailsSent * 0.44)} estimated opens`,
     },
     {
       label: "Positive Replies", value: analytics.replies,
       icon: MessageSquareText, format: "number",
-      gradient: "from-violet-500/20 to-violet-600/5",
-      border: "border-violet-500/20", iconColor: "text-violet-400",
-      badge: "Auto-tracked", badgeColor: "text-violet-400 bg-violet-400/10 border-violet-400/20",
+      gradient: "from-white to-slate-50",
+      border: "border-slate-200 text-slate-800 shadow-sm", iconColor: "text-violet-600 bg-violet-50",
+      badge: "Auto-tracked", badgeColor: "text-violet-700 bg-violet-50 border-violet-200",
       sub: analytics.replies === 0 ? "First reply ~48 hrs" : `${Math.round(analytics.replies / Math.max(analytics.emailsSent, 1) * 100)}% reply rate`,
     },
     {
       label: "Meetings Booked", value: analytics.meetings,
       icon: Calendar, format: "number",
-      gradient: "from-sky-500/20 to-sky-600/5",
-      border: "border-sky-500/20", iconColor: "text-sky-400",
-      badge: "Goal", badgeColor: "text-sky-400 bg-sky-400/10 border-sky-400/20",
+      gradient: "from-white to-slate-50",
+      border: "border-slate-200 text-slate-800 shadow-sm", iconColor: "text-sky-600 bg-sky-50",
+      badge: "Goal", badgeColor: "text-sky-700 bg-sky-50 border-sky-200",
       sub: analytics.meetings === 0 ? "Replies convert at ~12%" : `${analytics.meetings} this month`,
     },
     {
       label: "Est. Pipeline Value", value: pipelineValue,
       icon: TrendingUp, format: "currency",
-      gradient: "from-emerald-500/20 to-emerald-600/5",
-      border: "border-emerald-500/20", iconColor: "text-emerald-400",
-      badge: "Est. @ $3K/deal", badgeColor: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
+      gradient: "from-white to-slate-50",
+      border: "border-slate-200 text-slate-800 shadow-sm", iconColor: "text-emerald-600 bg-emerald-50",
+      badge: "Est. @ $3K/deal", badgeColor: "text-emerald-700 bg-emerald-50 border-emerald-200",
       sub: analytics.meetings === 0 ? "Grows with every meeting" : "Based on avg deal size",
     },
   ]
 
   return (
-    <div className="flex h-screen overflow-hidden font-sans" style={{ background: "#0B0F1A" }}>
+    <div className="flex h-screen overflow-hidden font-sans bg-slate-50 text-slate-900">
 
       {/* SIDEBAR */}
-      <aside className="w-60 shrink-0 hidden md:flex flex-col justify-between border-r" style={{ background: "#0F1420", borderColor: "#1E2535" }}>
+      <aside className="w-60 shrink-0 hidden md:flex flex-col justify-between border-r border-slate-200 bg-white">
         <div>
-          <div className="h-16 flex items-center px-5 border-b" style={{ borderColor: "#1E2535" }}>
+          <div className="h-16 flex items-center px-5 border-b border-slate-200">
             <div className="flex items-center gap-2.5">
               <VaultLogo />
-              <span className="text-white font-black text-lg tracking-tight">VaultReach</span>
+              <span className="text-slate-900 font-black text-lg tracking-tight">VaultReach</span>
             </div>
           </div>
 
-          {/* Agent status pill — driven by real lastPing from the Python worker */}
+          {/* Agent status pill */}
           {(() => {
             const s = agentStatusConfig[agentStatus]
             return (
@@ -197,9 +197,9 @@ export default function Dashboard() {
                 <span className={`w-2 h-2 rounded-full shrink-0 ${s.dot}`} />
                 <div>
                   <div className={`font-bold text-xs ${s.text}`}>{s.label}</div>
-                  <div className="text-slate-400 text-[10px] font-medium">{s.sub}</div>
+                  <div className={`text-[10px] font-medium opacity-80 ${s.text}`}>{s.sub}</div>
                 </div>
-                <Bot size={14} className={`${s.text} ml-auto`} />
+                <Bot size={14} className={`${s.text} ml-auto opacity-70`} />
               </div>
             )
           })()}
@@ -211,8 +211,8 @@ export default function Dashboard() {
                 onClick={() => setActiveTab(id)}
                 className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all text-left ${
                   activeTab === id
-                    ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/30"
-                    : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
+                    ? "bg-indigo-50 text-indigo-700 border border-indigo-100 shadow-sm"
+                    : "text-slate-500 hover:text-slate-900 hover:bg-slate-50 border border-transparent"
                 }`}
               >
                 <Icon size={16} />
@@ -223,20 +223,20 @@ export default function Dashboard() {
           </nav>
         </div>
 
-        <div className="p-3 border-t" style={{ borderColor: "#1E2535" }}>
+        <div className="p-3 border-t border-slate-200">
           {/* User chip */}
-          <div className="flex items-center gap-3 px-3 py-2 rounded-xl mb-2" style={{ background: "#1E2535" }}>
-            <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-xs shrink-0">
+          <div className="flex items-center gap-3 px-3 py-2 rounded-xl mb-2 bg-slate-50 border border-slate-100">
+            <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-sm">
               {userInitial}
             </div>
             <div className="min-w-0 flex-1">
-              <div className="text-white font-semibold text-xs truncate">{session?.user?.name ?? "User"}</div>
-              <div className="text-slate-400 text-[10px] truncate">{session?.user?.email}</div>
+              <div className="text-slate-900 font-bold text-xs truncate">{session?.user?.name ?? "User"}</div>
+              <div className="text-slate-500 text-[10px] truncate">{session?.user?.email}</div>
             </div>
           </div>
           <button
             onClick={() => signOut({ callbackUrl: "/" })}
-            className="w-full flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-xs text-slate-500 hover:text-red-400 hover:bg-red-400/5 transition-all"
+            className="w-full flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-xs text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-all"
           >
             <LogOut size={14} /> Sign Out
           </button>
@@ -247,13 +247,13 @@ export default function Dashboard() {
       <main className="flex-1 overflow-y-auto">
 
         {/* Header */}
-        <header className="h-16 sticky top-0 z-20 flex items-center justify-between px-8 border-b backdrop-blur-lg" style={{ background: "rgba(11,15,26,0.85)", borderColor: "#1E2535" }}>
+        <header className="h-16 sticky top-0 z-20 flex items-center justify-between px-8 border-b border-slate-200 bg-white/80 backdrop-blur-md">
           <div>
-            <div className="text-white font-extrabold text-base">{activeTab === "brain" ? "AI Messaging Brain" : activeTab === "targeting" ? "Lead Targeting" : "Performance Overview"}</div>
-            <div className="text-slate-500 text-xs font-medium">VaultReach Campaign Dashboard</div>
+            <div className="text-slate-900 font-extrabold text-base">{activeTab === "brain" ? "AI Messaging Brain" : activeTab === "targeting" ? "Lead Targeting" : "Performance Overview"}</div>
+            <div className="text-slate-500 text-xs font-semibold">VaultReach Campaign Dashboard</div>
           </div>
           <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-slate-400 border border-slate-700 rounded-full px-3 py-1.5">
+            <div className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-full px-3 py-1.5 shadow-sm">
               <Clock size={11} />
               <AnimatedNumber value={Math.round(hoursSaved)} /> hrs saved
             </div>
@@ -267,71 +267,71 @@ export default function Dashboard() {
             {activeTab === "overview" && (
               <motion.div key="overview" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} className="space-y-6">
 
-                {/* ── COLD-START: Setup Checklist (shown when no ICP saved yet) ── */}
+                {/* ── COLD-START: Setup Checklist ── */}
                 {!hasIcp ? (
-                  <div className="rounded-3xl p-8" style={{ background: "linear-gradient(135deg,#1a1f35 0%,#0F1420 100%)", border: "1px solid #2d3a55" }}>
+                  <div className="rounded-3xl p-8 bg-white border border-slate-200 shadow-sm">
                     <div className="mb-6">
-                      <div className="text-indigo-300 font-semibold text-sm mb-1">{getGreeting()}, {userName} 👋</div>
-                      <h1 className="text-white font-black text-2xl mb-1">Let&apos;s get your AI SDR running.</h1>
-                      <p className="text-slate-400 text-sm font-medium">Complete these 3 steps and your engine will start prospecting within 24 hours.</p>
+                      <div className="text-indigo-600 font-bold text-sm mb-1">{getGreeting()}, {userName} 👋</div>
+                      <h1 className="text-slate-900 font-black text-3xl mb-2 tracking-tight">Let&apos;s get your AI SDR running.</h1>
+                      <p className="text-slate-500 text-sm font-medium">Complete these 3 steps and your engine will start prospecting within 24 hours.</p>
                     </div>
                     <div className="space-y-3">
-                      {/* Step 1 — always complete (they're logged in) */}
-                      <div className="flex items-center gap-4 rounded-2xl px-5 py-4" style={{ background: "#0D2818", border: "1px solid #166534" }}>
-                        <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center shrink-0">
+                      {/* Step 1 */}
+                      <div className="flex items-center gap-4 rounded-2xl px-5 py-4 bg-emerald-50 border border-emerald-100">
+                        <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center shrink-0 shadow-sm">
                           <CheckCircle size={16} className="text-white" />
                         </div>
                         <div className="flex-1">
-                          <div className="text-white font-bold text-sm">Connected Google Account</div>
-                          <div className="text-emerald-400 text-xs font-medium">{session?.user?.email}</div>
+                          <div className="text-emerald-900 font-bold text-sm">Connected Google Account</div>
+                          <div className="text-emerald-600 text-xs font-medium">{session?.user?.email}</div>
                         </div>
-                        <span className="text-[10px] font-bold text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 px-2 py-0.5 rounded-full">Done</span>
+                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-full">Done</span>
                       </div>
-                      {/* Step 2 — CTA to go fill in the ICP */}
-                      <div className="flex items-center gap-4 rounded-2xl px-5 py-4" style={{ background: "#131929", border: "1.5px solid #6366F1" }}>
-                        <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center shrink-0">
+                      {/* Step 2 */}
+                      <div className="flex items-center gap-4 rounded-2xl px-5 py-4 bg-white border-2 border-indigo-500 shadow-sm">
+                        <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center shrink-0 shadow-sm">
                           <Target size={16} className="text-white" />
                         </div>
                         <div className="flex-1">
-                          <div className="text-white font-bold text-sm">Set your Ideal Customer Profile</div>
-                          <div className="text-slate-400 text-xs font-medium">Tell the AI who to target — takes 60 seconds.</div>
+                          <div className="text-slate-900 font-bold text-sm">Set your Ideal Customer Profile</div>
+                          <div className="text-slate-500 text-xs font-medium">Tell the AI who to target — takes 60 seconds.</div>
                         </div>
                         <button
                           onClick={() => setActiveTab("targeting")}
-                          className="shrink-0 flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-4 py-2 rounded-xl transition-all"
+                          className="shrink-0 flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition-all shadow-sm"
                         >
                           Set Up <ChevronRight size={12} />
                         </button>
                       </div>
-                      {/* Step 3 — locked until ICP is saved */}
-                      <div className="flex items-center gap-4 rounded-2xl px-5 py-4 opacity-40" style={{ background: "#131929", border: "1px solid #1E2535" }}>
-                        <div className="w-8 h-8 rounded-full border-2 border-slate-600 flex items-center justify-center shrink-0">
-                          <Zap size={14} className="text-slate-500" />
+                      {/* Step 3 */}
+                      <div className="flex items-center gap-4 rounded-2xl px-5 py-4 bg-slate-50 border border-slate-200 opacity-60">
+                        <div className="w-8 h-8 rounded-full border-2 border-slate-300 flex items-center justify-center shrink-0 bg-white">
+                          <Zap size={14} className="text-slate-400" />
                         </div>
                         <div className="flex-1">
-                          <div className="text-slate-300 font-bold text-sm">AI warming up &amp; prospecting</div>
+                          <div className="text-slate-700 font-bold text-sm">AI warming up &amp; prospecting</div>
                           <div className="text-slate-500 text-xs font-medium">Unlocks after Step 2 is complete.</div>
                         </div>
-                        <span className="text-[10px] font-bold text-slate-500 bg-slate-500/10 border border-slate-500/20 px-2 py-0.5 rounded-full">Locked</span>
+                        <span className="text-[10px] font-bold text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full">Locked</span>
                       </div>
                     </div>
                   </div>
                 ) : (
                   <>
-                {/* Hero greeting — only shown once ICP is configured */}
-                <div className="rounded-3xl p-6 relative overflow-hidden" style={{ background: "linear-gradient(135deg,#312e81 0%,#1e1b4b 60%,#0B0F1A 100%)", border: "1px solid #4338ca40" }}>
-                  <div className="absolute -right-8 -top-8 opacity-10">
-                    <Zap size={180} className="text-indigo-300" />
+                {/* Hero greeting */}
+                <div className="rounded-3xl p-8 relative overflow-hidden bg-white border border-slate-200 shadow-sm">
+                  <div className="absolute -right-8 -top-8 opacity-5">
+                    <Zap size={180} className="text-indigo-600" />
                   </div>
                   <div className="relative">
-                    <div className="text-indigo-300 font-semibold text-sm mb-1">{getGreeting()}, {userName} 👋</div>
-                    <h1 className="text-white font-black text-2xl mb-2">Your AI sales engine is running 24/7.</h1>
-                    <p className="text-indigo-200 text-sm font-medium max-w-lg">
+                    <div className="text-indigo-600 font-bold text-sm mb-1">{getGreeting()}, {userName} 👋</div>
+                    <h1 className="text-slate-900 font-black text-3xl mb-3 tracking-tight">Your AI sales engine is running 24/7.</h1>
+                    <p className="text-slate-600 text-sm font-medium max-w-xl leading-relaxed">
                       While you focus on delivering great work, VaultReach is scraping leads, writing personalized outreach, and filling your pipeline around the clock.
                     </p>
                     {analytics.emailsSent === 0 && (
-                      <div className="mt-4 inline-flex items-center gap-2 bg-indigo-500/20 border border-indigo-500/30 rounded-xl px-4 py-2 text-indigo-200 text-xs font-bold">
-                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+                      <div className="mt-5 inline-flex items-center gap-2 bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-2 text-indigo-700 text-xs font-bold shadow-sm">
+                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
                         Warming up — your first batch of emails typically sends within 24 hours of setup.
                       </div>
                     )}
@@ -343,25 +343,25 @@ export default function Dashboard() {
                   {kpis.map((kpi) => (
                     <div key={kpi.label} className={`rounded-2xl p-5 border bg-gradient-to-br ${kpi.gradient} ${kpi.border} relative overflow-hidden`}>
                       <div className="flex justify-between items-start mb-4">
-                        <div className={`p-2 rounded-xl bg-white/5 ${kpi.iconColor}`}>
+                        <div className={`p-2 rounded-xl border border-slate-100/50 ${kpi.iconColor}`}>
                           <kpi.icon size={18} />
                         </div>
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${kpi.badgeColor}`}>
                           {kpi.badge}
                         </span>
                       </div>
-                      <div className="text-white font-black text-3xl mb-0.5">
+                      <div className="text-slate-900 font-black text-3xl mb-0.5 tracking-tight">
                         {kpi.format === "currency" ? (
                           kpi.value === 0 ? "$0" : `$${kpi.value.toLocaleString()}`
                         ) : (
                           <AnimatedNumber value={kpi.value} />
                         )}
                       </div>
-                      <div className="text-slate-300 font-bold text-sm mb-2">{kpi.label}</div>
+                      <div className="text-slate-800 font-bold text-sm mb-1">{kpi.label}</div>
                       <div className="text-slate-500 text-xs font-medium">{kpi.sub}</div>
                       {kpi.value > 0 && (
-                        <div className="absolute top-4 right-4 opacity-20">
-                          <ArrowUpRight size={40} className="text-white" />
+                        <div className="absolute -bottom-4 -right-4 opacity-5">
+                          <kpi.icon size={100} className="text-slate-900" />
                         </div>
                       )}
                     </div>
@@ -369,14 +369,14 @@ export default function Dashboard() {
                 </div>
 
                 {/* Time Saved Banner */}
-                <div className="rounded-2xl px-6 py-4 flex items-center justify-between" style={{ background: "#131929", border: "1px solid #1E2535" }}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center text-amber-400">
-                      <Clock size={18} />
+                <div className="rounded-2xl px-6 py-5 flex items-center justify-between bg-white border border-slate-200 shadow-sm">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-500 shadow-sm">
+                      <Clock size={20} />
                     </div>
                     <div>
-                      <div className="text-white font-bold text-sm">Hours Saved vs. Hiring an SDR</div>
-                      <div className="text-slate-400 text-xs">
+                      <div className="text-slate-900 font-bold text-sm">Hours Saved vs. Hiring an SDR</div>
+                      <div className="text-slate-500 text-xs font-medium mt-0.5">
                         {analytics.emailsSent === 0
                           ? "Calculated once outreach begins"
                           : "Based on your email volume at ~30 min/prospect manually"}
@@ -384,54 +384,54 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-amber-400 font-black text-2xl">
+                    <div className="text-amber-500 font-black text-2xl tracking-tight">
                       {analytics.emailsSent === 0 ? "—" : `${Math.round(hoursSaved)}`}
                     </div>
-                    <div className="text-slate-500 text-xs font-semibold">
+                    <div className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mt-0.5">
                       {analytics.emailsSent === 0 ? "not yet" : "hrs / wk est."}
                     </div>
                   </div>
                 </div>
 
-                {/* Recent Replies — maps over real DB records, no hardcoded data */}
-                <div className="rounded-2xl overflow-hidden" style={{ background: "#131929", border: "1px solid #1E2535" }}>
-                  <div className="px-6 py-4 border-b flex justify-between items-center" style={{ borderColor: "#1E2535" }}>
-                    <h3 className="text-white font-bold text-sm">Recent Positive Replies</h3>
-                    <span className="text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full">AI-monitored</span>
+                {/* Recent Replies */}
+                <div className="rounded-2xl overflow-hidden bg-white border border-slate-200 shadow-sm">
+                  <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50/50">
+                    <h3 className="text-slate-900 font-bold text-sm">Recent Positive Replies</h3>
+                    <span className="text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-full">AI-monitored</span>
                   </div>
                   {analytics.recentReplies.length === 0 ? (
-                    <div className="p-10 text-center">
-                      <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mx-auto mb-4">
-                        <Mail size={24} className="text-indigo-400" />
+                    <div className="p-12 text-center bg-white">
+                      <div className="w-16 h-16 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center mx-auto mb-5 shadow-sm">
+                        <Mail size={28} className="text-slate-400" />
                       </div>
-                      <div className="text-white font-bold text-base mb-1">No replies yet — and that&apos;s normal.</div>
-                      <div className="text-slate-400 text-sm font-medium max-w-xs mx-auto">
+                      <div className="text-slate-900 font-bold text-lg mb-2">No replies yet — and that&apos;s normal.</div>
+                      <div className="text-slate-500 text-sm font-medium max-w-md mx-auto leading-relaxed">
                         Most campaigns see the first interested reply within 48 hours. Your AI is warming up inboxes to maximize deliverability.
                       </div>
                     </div>
                   ) : (
-                    <div className="divide-y" style={{ borderColor: "#1E2535" }}>
+                    <div className="divide-y border-slate-100">
                       {analytics.recentReplies.map((reply, i) => (
-                        <div key={i} className="px-6 py-4 hover:bg-white/2 transition-colors flex items-center gap-4">
-                          <div className="w-9 h-9 rounded-full bg-indigo-600/30 border border-indigo-500/30 flex items-center justify-center text-indigo-300 font-bold text-sm shrink-0">
+                        <div key={i} className="px-6 py-4 hover:bg-slate-50 transition-colors flex items-center gap-4 bg-white">
+                          <div className="w-10 h-10 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-sm shrink-0 shadow-sm">
                             {reply.name.charAt(0)}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-0.5">
-                              <span className="text-white font-bold text-sm">{reply.name}</span>
-                              <span className="text-slate-500 text-xs">{reply.role}</span>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-slate-900 font-bold text-sm">{reply.name}</span>
+                              <span className="text-slate-500 text-xs font-medium">{reply.role}</span>
                             </div>
-                            <div className="text-slate-400 text-xs truncate">{reply.preview}</div>
+                            <div className="text-slate-600 text-sm truncate">{reply.preview}</div>
                           </div>
-                          <div className="flex flex-col items-end gap-1 shrink-0">
+                          <div className="flex flex-col items-end gap-1.5 shrink-0">
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                               reply.score === "Hot"
-                                ? "text-red-400 bg-red-400/10 border-red-400/20"
-                                : "text-amber-400 bg-amber-400/10 border-amber-400/20"
+                                ? "text-rose-700 bg-rose-50 border-rose-200"
+                                : "text-amber-700 bg-amber-50 border-amber-200"
                             }`}>
                               {reply.score}
                             </span>
-                            <span className="text-slate-500 text-[10px]">{reply.time}</span>
+                            <span className="text-slate-400 font-medium text-[10px]">{reply.time}</span>
                           </div>
                         </div>
                       ))}
@@ -446,45 +446,41 @@ export default function Dashboard() {
             {/* ─── TARGETING ─── */}
             {activeTab === "targeting" && (
               <motion.div key="targeting" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
-                <div className="rounded-2xl overflow-hidden" style={{ background: "#131929", border: "1px solid #1E2535" }}>
-                  <div className="px-8 py-6 border-b" style={{ borderColor: "#1E2535" }}>
-                    <h3 className="text-white font-bold text-lg mb-1">Ideal Customer Profile</h3>
-                    <p className="text-slate-400 text-sm">Update your ICP at any time — the AI instantly adjusts its Apollo prospecting queries.</p>
+                <div className="rounded-2xl overflow-hidden bg-white border border-slate-200 shadow-sm">
+                  <div className="px-8 py-6 border-b border-slate-200 bg-slate-50/50">
+                    <h3 className="text-slate-900 font-black text-xl mb-1 tracking-tight">Ideal Customer Profile</h3>
+                    <p className="text-slate-500 text-sm font-medium">Update your ICP at any time — the AI instantly adjusts its Apollo prospecting queries.</p>
                   </div>
                   <form onSubmit={handleSave} className="p-8 space-y-6">
                     <div>
-                      <label className="block text-sm font-bold text-slate-200 mb-2">Your Business Website</label>
+                      <label className="block text-sm font-bold text-slate-800 mb-2">Your Business Website</label>
                       <input
                         type="url" value={url} onChange={e => setUrl(e.target.value)}
                         placeholder="https://acmeplumbing.com"
-                        className="w-full rounded-xl p-3.5 text-slate-100 placeholder-slate-500 font-medium outline-none transition-all"
-                        style={{ background: "#0B0F1A", border: "1.5px solid #1E2535" }}
-                        onFocus={e => (e.target.style.borderColor = "#6366F1")}
-                        onBlur={e => (e.target.style.borderColor = "#1E2535")}
+                        className="w-full rounded-xl p-3.5 text-slate-900 bg-white placeholder-slate-400 font-medium outline-none transition-all border-2 border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 shadow-sm"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-slate-200 mb-2">Who is your perfect customer?</label>
+                      <label className="block text-sm font-bold text-slate-800 mb-2">Who is your perfect customer?</label>
                       <textarea
                         value={icp} onChange={e => setIcp(e.target.value)} rows={4}
                         placeholder="e.g. Restaurants and cafes in Austin, Texas with 5–50 employees needing commercial plumbing services."
-                        className="w-full rounded-xl p-3.5 text-slate-100 placeholder-slate-500 font-medium outline-none transition-all resize-none"
-                        style={{ background: "#0B0F1A", border: "1.5px solid #1E2535" }}
-                        onFocus={e => (e.target.style.borderColor = "#6366F1")}
-                        onBlur={e => (e.target.style.borderColor = "#1E2535")}
+                        className="w-full rounded-xl p-3.5 text-slate-900 bg-white placeholder-slate-400 font-medium outline-none transition-all border-2 border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 shadow-sm resize-none"
                       />
                     </div>
-                    <div className="flex items-center gap-4 pt-2">
-                      <button type="submit" disabled={isSaving} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-7 rounded-xl transition-all disabled:opacity-60 text-sm">
+                    <div className="flex items-center gap-4 pt-4 border-t border-slate-100">
+                      <button type="submit" disabled={isSaving} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-xl transition-all shadow-md hover:shadow-lg disabled:opacity-60 text-sm">
                         {isSaving ? "Saving..." : <><Save size={16} /> Update Targeting</>}
                       </button>
                       {saveSuccess && (
-                        <span className="flex items-center gap-1.5 text-emerald-400 font-bold text-sm">
-                          <CheckCircle size={15} /> Saved!
+                        <span className="flex items-center gap-1.5 text-emerald-600 font-bold text-sm bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100">
+                          <CheckCircle size={15} /> Saved successfully!
                         </span>
                       )}
                       {saveError && (
-                        <span className="text-red-400 font-bold text-sm">Save failed — please try again.</span>
+                        <span className="flex items-center gap-1.5 text-rose-600 font-bold text-sm bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-100">
+                          Save failed — please try again.
+                        </span>
                       )}
                     </div>
                   </form>
@@ -495,15 +491,15 @@ export default function Dashboard() {
             {/* ─── AI BRAIN ─── */}
             {activeTab === "brain" && (
               <motion.div key="brain" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
-                <div className="rounded-2xl overflow-hidden" style={{ background: "#131929", border: "1px solid #1E2535" }}>
-                  <div className="px-8 py-6 border-b" style={{ borderColor: "#1E2535" }}>
-                    <h3 className="text-white font-bold text-lg mb-1">Messaging Controls</h3>
-                    <p className="text-slate-400 text-sm">Control exactly how your digital SDR speaks to prospects and handles replies.</p>
+                <div className="rounded-2xl overflow-hidden bg-white border border-slate-200 shadow-sm">
+                  <div className="px-8 py-6 border-b border-slate-200 bg-slate-50/50">
+                    <h3 className="text-slate-900 font-black text-xl mb-1 tracking-tight">Messaging Controls</h3>
+                    <p className="text-slate-500 text-sm font-medium">Control exactly how your digital SDR speaks to prospects and handles replies.</p>
                   </div>
                   <form onSubmit={handleSave} className="p-8 space-y-8">
                     <div>
-                      <label className="block text-sm font-bold text-slate-200 mb-4">Brand Tone of Voice</label>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <label className="block text-sm font-bold text-slate-800 mb-4">Brand Tone of Voice</label>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {[
                           { id: "professional", label: "Highly Professional", desc: "Direct, polished, corporate." },
                           { id: "casual", label: "Casual & Friendly", desc: "Warm, relaxed, uses first names." },
@@ -511,20 +507,20 @@ export default function Dashboard() {
                         ].map(t => (
                           <div
                             key={t.id} onClick={() => setTone(t.id)}
-                            className="cursor-pointer rounded-xl p-4 transition-all"
-                            style={{
-                              background: tone === t.id ? "#1e1b4b" : "#0B0F1A",
-                              border: `1.5px solid ${tone === t.id ? "#6366F1" : "#1E2535"}`
-                            }}
+                            className={`cursor-pointer rounded-xl p-5 transition-all border-2 ${
+                              tone === t.id 
+                                ? "bg-indigo-50 border-indigo-500 shadow-md transform -translate-y-0.5" 
+                                : "bg-white border-slate-200 hover:border-slate-300 shadow-sm"
+                            }`}
                           >
-                            <div className={`font-bold text-sm mb-1 ${tone === t.id ? "text-indigo-300" : "text-slate-300"}`}>{t.label}</div>
-                            <div className="text-xs text-slate-500 font-medium">{t.desc}</div>
+                            <div className={`font-bold text-sm mb-1.5 ${tone === t.id ? "text-indigo-700" : "text-slate-800"}`}>{t.label}</div>
+                            <div className={`text-xs font-medium leading-relaxed ${tone === t.id ? "text-indigo-600/80" : "text-slate-500"}`}>{t.desc}</div>
                           </div>
                         ))}
                       </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-slate-200 mb-1">
+                      <label className="block text-sm font-bold text-slate-800 mb-1">
                         Auto-Reply Guardrails
                       </label>
                       <p className="text-xs text-slate-500 mb-3 font-medium">
@@ -533,23 +529,22 @@ export default function Dashboard() {
                       <textarea
                         value={rules} onChange={e => setRules(e.target.value)} rows={5}
                         placeholder="Always push for Wednesday or Thursday calls. Do not mention specific product features unless asked directly."
-                        className="w-full rounded-xl p-3.5 text-slate-100 placeholder-slate-500 font-medium outline-none transition-all resize-none"
-                        style={{ background: "#0B0F1A", border: "1.5px solid #1E2535" }}
-                        onFocus={e => (e.target.style.borderColor = "#6366F1")}
-                        onBlur={e => (e.target.style.borderColor = "#1E2535")}
+                        className="w-full rounded-xl p-3.5 text-slate-900 bg-white placeholder-slate-400 font-medium outline-none transition-all border-2 border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 shadow-sm resize-none"
                       />
                     </div>
-                    <div className="flex items-center gap-4 pt-2">
-                      <button type="submit" disabled={isSaving} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-7 rounded-xl transition-all disabled:opacity-60 text-sm">
+                    <div className="flex items-center gap-4 pt-4 border-t border-slate-100">
+                      <button type="submit" disabled={isSaving} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-xl transition-all shadow-md hover:shadow-lg disabled:opacity-60 text-sm">
                         {isSaving ? "Saving..." : <><Save size={16} /> Train AI Assistant</>}
                       </button>
                       {saveSuccess && (
-                        <span className="flex items-center gap-1.5 text-emerald-400 font-bold text-sm">
-                          <CheckCircle size={15} /> Saved!
+                        <span className="flex items-center gap-1.5 text-emerald-600 font-bold text-sm bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100">
+                          <CheckCircle size={15} /> Saved successfully!
                         </span>
                       )}
                       {saveError && (
-                        <span className="text-red-400 font-bold text-sm">Save failed — please try again.</span>
+                        <span className="flex items-center gap-1.5 text-rose-600 font-bold text-sm bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-100">
+                          Save failed — please try again.
+                        </span>
                       )}
                     </div>
                   </form>
@@ -561,22 +556,19 @@ export default function Dashboard() {
         </div>
       </main>
 
-      {/* ── MOBILE BOTTOM TAB BAR (md:hidden) ── */}
-      <nav
-        className="md:hidden fixed bottom-0 left-0 right-0 z-30 flex border-t"
-        style={{ background: "#0F1420", borderColor: "#1E2535" }}
-      >
+      {/* ── MOBILE BOTTOM TAB BAR ── */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 flex bg-white border-t border-slate-200 safe-area-pb">
         {navItems.map(({ id, icon: Icon, label }) => (
           <button
             key={id}
             onClick={() => setActiveTab(id)}
-            className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 text-[10px] font-bold transition-all ${
-              activeTab === id ? "text-indigo-400" : "text-slate-500"
+            className={`flex-1 flex flex-col items-center justify-center gap-1.5 py-3 text-[10px] font-bold transition-all ${
+              activeTab === id ? "text-indigo-600" : "text-slate-500"
             }`}
           >
             <div
               className={`p-1.5 rounded-xl transition-all ${
-                activeTab === id ? "bg-indigo-600/20" : "bg-transparent"
+                activeTab === id ? "bg-indigo-50 shadow-sm" : "bg-transparent"
               }`}
             >
               <Icon size={18} />
