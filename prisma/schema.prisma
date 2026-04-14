@@ -78,6 +78,7 @@ model Campaign {
   updatedAt             DateTime  @updatedAt
   analytics             Analytics[]
   replies               Reply[]
+  leads                 Lead[]
 }
 
 model Analytics {
@@ -99,4 +100,21 @@ model Reply {
   preview     String   @db.Text
   score       String   @default("Warm") // Hot | Warm | Cold
   receivedAt  DateTime @default(now())
+}
+
+enum LeadStatus {
+  COLD
+  FOLLOW_UP
+  REPLIED
+  BOUNCED
+}
+
+model Lead {
+  id            String     @id @default(uuid())
+  campaignId    String
+  campaign      Campaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  email         String
+  status        LeadStatus @default(COLD)
+  stepIndex     Int        @default(1)
+  lastContacted DateTime?
 }

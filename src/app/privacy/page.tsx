@@ -19,14 +19,14 @@ export default function PrivacyPage() {
         <section className="mb-8">
           <h2 className="text-xl font-bold text-slate-800 mb-3">1. Information We Collect</h2>
           <p className="text-slate-600 leading-relaxed">
-            VaultReach ("we," "our," or "us") is a B2B sales outreach platform. When you connect your Google account, we collect your name, email address, and Google OAuth access tokens. These tokens are used solely to authenticate Gmail API calls. We also collect campaign data such as prospect names and message templates authored by you, along with send metadata (timestamps).
+            VaultReach (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;) is a B2B sales outreach platform. When you connect your Google account, we collect your name, email address, and Google OAuth access tokens. These tokens are used solely to authenticate Gmail API calls. We also collect campaign data such as prospect names and message templates authored by you, along with send metadata (timestamps).
           </p>
         </section>
 
         <section className="mb-8">
           <h2 className="text-xl font-bold text-slate-800 mb-3">2. Gmail Data and Google API Services</h2>
-          <p className="text-slate-600 leading-relaxed mb-4">
-            VaultReach's use of Google APIs, including the Gmail API (<code>gmail.send</code> scope), is limited to sending emails that you explicitly compose and approve within the VaultReach platform, on your behalf, from your own Gmail account.
+          <p className="text-slate-600 leading-relaxed mt-4">
+            VaultReach&apos;s use of Google APIs, including the Gmail API (<code>gmail.send</code> scope), is limited to sending emails that you explicitly compose and approve within the VaultReach platform, on your behalf, from your own Gmail account.
           </p>
           <p className="text-slate-600 leading-relaxed mb-4">
             We do not read, store, index, scan, share, or sell the contents of your Gmail inbox or any received emails. We do not access your Gmail drafts, labels, contacts, or any data beyond what is required to execute the send action you initiate.
@@ -48,15 +48,15 @@ export default function PrivacyPage() {
         <section className="mb-8">
           <h2 className="text-xl font-bold text-slate-800 mb-3">4. Data Retention & Security</h2>
           <p className="text-slate-600 leading-relaxed">
-            We retain email send logs (sender, recipient, timestamp, campaign ID) to provide analytics. OAuth access tokens are stored encrypted at rest (AES-256 or equivalent) and are deleted immediately upon account disconnection. We do not retain the content of sent emails beyond what Gmail's Sent folder retains. All data is transmitted over HTTPS/TLS.
+            We retain email send logs (sender, recipient, timestamp, campaign ID) to provide analytics. OAuth access tokens are stored encrypted at rest (AES-256 or equivalent) and are deleted immediately upon account disconnection. We do not retain the content of sent emails beyond what Gmail&apos;s Sent folder retains. All data is transmitted over HTTPS/TLS.
           </p>
         </section>
 
         <section className="mb-8">
           <h2 className="text-xl font-bold text-slate-800 mb-3">5. User Rights and Google API Revocation</h2>
-          <p className="text-slate-600 leading-relaxed mb-3">You may revoke VaultReach's access to your Google account at any time by:</p>
+          <p className="text-slate-600 leading-relaxed mb-3">You may revoke VaultReach&apos;s access to your Google account at any time by:</p>
           <ol className="list-decimal pl-5 text-slate-600 space-y-2 mb-3">
-            <li>Visiting Account Settings → Connected Accounts within VaultReach and clicking "Disconnect Gmail", OR</li>
+            <li>Visiting Account Settings → Connected Accounts within VaultReach and clicking &quot;Disconnect Gmail&quot;, OR</li>
             <li>Visiting <a href="https://myaccount.google.com/permissions" className="text-indigo-600 hover:underline" target="_blank" rel="noopener noreferrer">https://myaccount.google.com/permissions</a> and removing VaultReach.</li>
           </ol>
           <p className="text-slate-600 leading-relaxed">

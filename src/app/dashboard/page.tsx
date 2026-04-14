@@ -6,7 +6,7 @@ import { useSession, signOut } from "next-auth/react"
 import {
   BarChart3, Target, BrainCircuit, LogOut, Save, CheckCircle,
   Mail, Calendar, TrendingUp, Zap, Clock, MessageSquareText,
-  ArrowUpRight, Bot, ChevronRight
+  Bot, ChevronRight
 } from "lucide-react"
 
 const VaultLogo = () => (
