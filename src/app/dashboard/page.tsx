@@ -6,7 +6,7 @@ import { useSession, signOut } from "next-auth/react"
 import {
   BarChart3, Target, BrainCircuit, LogOut, Save, CheckCircle,
   Mail, Calendar, TrendingUp, Zap, Clock, MessageSquareText,
-  Bot, ChevronRight
+  Bot, ChevronRight, Unplug
 } from "lucide-react"
 
 const VaultLogo = () => (
@@ -237,6 +237,17 @@ export default function Dashboard() {
               <div className="text-slate-500 text-[10px] truncate">{session?.user?.email}</div>
             </div>
           </div>
+          <button
+            onClick={async () => {
+              if (window.confirm("Are you sure you want to disconnect your Gmail Account? This will revoke our access to send emails on your behalf and pause the agent.")) {
+                // In production, we would also call an API to revoke the token from our database
+                signOut({ callbackUrl: "/" })
+              }
+            }}
+            className="w-full flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-xs text-slate-500 hover:text-amber-600 hover:bg-amber-50 transition-all mb-1"
+          >
+            <Unplug size={14} /> Disconnect Gmail
+          </button>
           <button
             onClick={() => signOut({ callbackUrl: "/" })}
             className="w-full flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-xs text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-all"
