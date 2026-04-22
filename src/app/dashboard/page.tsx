@@ -60,6 +60,7 @@ export default function Dashboard() {
     meetings: number
     recentReplies: { name: string; role: string; preview: string; score: string; time: string }[]
   }>({ emailsSent: 0, replies: 0, meetings: 0, recentReplies: [] })
+  const [isRevoking, setIsRevoking] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -238,15 +239,22 @@ export default function Dashboard() {
             </div>
           </div>
           <button
+            disabled={isRevoking}
             onClick={async () => {
               if (window.confirm("Are you sure you want to disconnect your Gmail Account? This will revoke our access to send emails on your behalf and pause the agent.")) {
-                // In production, we would also call an API to revoke the token from our database
-                signOut({ callbackUrl: "/" })
+                setIsRevoking(true)
+                try {
+                  await fetch("/api/auth/revoke", { method: "POST" })
+                } catch (e) {
+                  console.error("Revocation request failed", e)
+                } finally {
+                  signOut({ callbackUrl: "/" })
+                }
               }
             }}
-            className="w-full flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-xs text-slate-500 hover:text-amber-600 hover:bg-amber-50 transition-all mb-1"
+            className="w-full flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-xs text-slate-500 hover:text-amber-600 hover:bg-amber-50 transition-all mb-1 disabled:opacity-50"
           >
-            <Unplug size={14} /> Disconnect Gmail
+            <Unplug size={14} /> {isRevoking ? "Disconnecting..." : "Disconnect Gmail"}
           </button>
           <button
             onClick={() => signOut({ callbackUrl: "/" })}
