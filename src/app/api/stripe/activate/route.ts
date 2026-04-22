@@ -27,24 +27,24 @@ export async function POST() {
     return NextResponse.json({ activated: false, reason: "no_customer" })
   }
 
-  // Query Stripe directly for active subscriptions on this customer
+  // Query Stripe directly for active or trialing subscriptions on this customer
   const subscriptions = await stripe.subscriptions.list({
     customer: user.stripeCustomerId,
-    status: "active",
-    limit: 1,
+    status: "all",
+    limit: 5,
   })
 
-  if (subscriptions.data.length === 0) {
+  const validSub = subscriptions.data.find(sub => sub.status === "active" || sub.status === "trialing")
+
+  if (!validSub) {
     return NextResponse.json({ activated: false, reason: "no_active_subscription" })
   }
-
-  const sub = subscriptions.data[0]
 
   // Write it directly to the database — bypasses webhook timing entirely
   await prisma.user.update({
     where: { id: user.id },
-    data: { stripeSubscriptionId: sub.id }
+    data: { stripeSubscriptionId: validSub.id }
   })
 
-  return NextResponse.json({ activated: true, subscriptionId: sub.id })
+  return NextResponse.json({ activated: true, subscriptionId: validSub.id })
 }
