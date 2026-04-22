@@ -46,10 +46,17 @@ export default function PrivacyPage() {
         </section>
 
         <section className="mb-8">
-          <h2 className="text-xl font-bold text-slate-800 mb-3">4. Data Retention & Security</h2>
-          <p className="text-slate-600 leading-relaxed">
-            We retain email send logs (sender, recipient, timestamp, campaign ID) to provide analytics. OAuth access tokens are stored encrypted at rest (AES-256 or equivalent) and are deleted immediately upon account disconnection. We do not retain the content of sent emails beyond what Gmail&apos;s Sent folder retains. All data is transmitted over HTTPS/TLS.
+          <h2 className="text-xl font-bold text-slate-800 mb-3">4. Data Protection Mechanisms & Security</h2>
+          <p className="text-slate-600 leading-relaxed mb-3">
+            We implement comprehensive data protection mechanisms and security practices to safeguard your sensitive data, including Google OAuth tokens and campaign information:
           </p>
+          <ul className="list-disc pl-5 text-slate-600 space-y-2">
+            <li><strong>Encryption in Transit:</strong> All data transmitted between your browser, our servers, and Google APIs is encrypted using industry-standard HTTPS/TLS protocols.</li>
+            <li><strong>Encryption at Rest:</strong> Sensitive data, specifically OAuth access and refresh tokens, are stored securely using AES-256 encryption at rest in our database.</li>
+            <li><strong>Strict Access Controls:</strong> Access to infrastructure and databases containing sensitive user data is strictly limited to authorized engineering personnel on a need-to-know basis and secured with multi-factor authentication.</li>
+            <li><strong>Organizational Security:</strong> We enforce secure coding practices and conduct regular internal security reviews to prevent unauthorized access, disclosure, or modification of your data.</li>
+            <li><strong>Data Isolation:</strong> We do not store the content of your received emails. We only retain essential metadata (sender, recipient, timestamp) necessary to provide campaign analytics.</li>
+          </ul>
         </section>
 
         <section className="mb-8">
