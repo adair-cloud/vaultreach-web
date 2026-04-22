@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
       const customerId = subscription.customer as string
       const status = subscription.status
 
-      if (status === "active") {
+      if (status === "active" || status === "trialing") {
         await prisma.user.updateMany({
           where: { stripeCustomerId: customerId },
           data: { stripeSubscriptionId: subscription.id }
