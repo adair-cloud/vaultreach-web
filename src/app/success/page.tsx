@@ -2,7 +2,6 @@
 
 import { useSession } from "next-auth/react"
 import { useEffect, useRef, useState } from "react"
-import { useRouter } from "next/navigation"
 
 const steps = [
   "Confirming your payment...",
@@ -13,7 +12,6 @@ const steps = [
 
 export default function SuccessPage() {
   const { update } = useSession()
-  const router = useRouter()
   const [stepIndex, setStepIndex] = useState(0)
   const [ready, setReady] = useState(false)
   const [error, setError] = useState(false)
