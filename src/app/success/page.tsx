@@ -133,7 +133,7 @@ export default function SuccessPage() {
           <div className="space-y-4 mt-4">
             <button
               id="go-to-dashboard-btn"
-              onClick={() => router.push("/dashboard")}
+              onClick={() => window.location.href = "/dashboard"}
               className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-4 px-8 rounded-2xl shadow-lg shadow-indigo-900/50 transition-all text-lg"
             >
               Launch My Dashboard →
