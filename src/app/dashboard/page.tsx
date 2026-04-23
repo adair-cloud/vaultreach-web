@@ -49,9 +49,11 @@ export default function Dashboard() {
   const [selectedTitles, setSelectedTitles] = useState<string[]>([])
   const [selectedIndustries, setSelectedIndustries] = useState<string[]>([])
   const [employeeRange, setEmployeeRange] = useState("1-50")
+  const [targetLocations, setTargetLocations] = useState("")
   
   // Brain State
   const [tone, setTone] = useState("professional")
+  const [coreOffer, setCoreOffer] = useState("")
   const [selectedRules, setSelectedRules] = useState<string[]>([])
   const [customRules, setCustomRules] = useState("")
   const [isSaving, setIsSaving] = useState(false)
@@ -80,6 +82,7 @@ export default function Dashboard() {
           setSelectedTitles(campaign.targetTitles ? campaign.targetTitles.split(',').map((s: string) => s.trim()).filter(Boolean) : [])
           setSelectedIndustries(campaign.targetIndustry ? campaign.targetIndustry.split(',').map((s: string) => s.trim()).filter(Boolean) : [])
           setEmployeeRange(campaign.employeeRange ?? "1-50")
+          setTargetLocations(campaign.targetLocations ?? "")
           
           setTone(campaign.tone ?? "professional")
           
@@ -88,6 +91,7 @@ export default function Dashboard() {
             const parsedRules = JSON.parse(campaign.rules || "{}")
             setSelectedRules(parsedRules.presets || [])
             setCustomRules(parsedRules.custom || "")
+            setCoreOffer(parsedRules.coreOffer || "")
           } catch {
             setCustomRules(campaign.rules || "") // legacy fallback
           }
@@ -117,14 +121,14 @@ export default function Dashboard() {
           activeTab === "brain"
             ? { 
                 tone, 
-                rules: JSON.stringify({ presets: selectedRules, custom: customRules }) 
+                rules: JSON.stringify({ presets: selectedRules, custom: customRules, coreOffer }) 
               }
             : { 
                 websiteUrl: url, 
                 targetIndustry: selectedIndustries.join(","), 
                 targetTitles: selectedTitles.join(","),
                 employeeRange,
-                targetLocations: "" 
+                targetLocations 
               }
         ),
       })
@@ -580,6 +584,14 @@ export default function Dashboard() {
                       />
                     </div>
                     <div>
+                      <label className="block text-sm font-bold text-slate-800 mb-2">Target Location (Geography)</label>
+                      <input
+                        type="text" value={targetLocations} onChange={e => setTargetLocations(e.target.value)}
+                        placeholder="e.g. Austin, TX or Nationwide"
+                        className="w-full rounded-xl p-3.5 text-slate-900 bg-white placeholder-slate-400 font-medium outline-none transition-all border-2 border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 shadow-sm"
+                      />
+                    </div>
+                    <div>
                       <label className="block text-sm font-bold text-slate-800 mb-2">Target Roles (Select all that apply)</label>
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                         {["CEO", "Founder", "Co-Founder", "VP Sales", "VP Marketing", "Owner", "Managing Director", "Partner"].map(title => (
@@ -695,6 +707,14 @@ export default function Dashboard() {
                           </div>
                         ))}
                       </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-800 mb-2">The Core Offer (What are we pitching?)</label>
+                      <input
+                        type="text" value={coreOffer} onChange={e => setCoreOffer(e.target.value)}
+                        placeholder="e.g. Free Roof Inspection, Complimentary SEO Audit, 10% Off First Month"
+                        className="w-full rounded-xl p-3.5 text-slate-900 bg-white placeholder-slate-400 font-medium outline-none transition-all border-2 border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 shadow-sm"
+                      />
                     </div>
                     <div>
                       <label className="block text-sm font-bold text-slate-800 mb-1">
