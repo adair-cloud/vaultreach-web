@@ -6,16 +6,8 @@ export default withAuth(
     const token = req.nextauth.token
     const { pathname } = req.nextUrl
 
-    // If accessing dashboard and not subscribed → redirect to subscribe
-    if (pathname.startsWith("/dashboard")) {
-      // Allow access if user has an active Stripe subscription OR in dev mode
-      const isSubscribed = !!token?.stripeSubscriptionId
-      const isDev = process.env.NODE_ENV === "development"
-
-      if (!isSubscribed && !isDev) {
-        return NextResponse.redirect(new URL("/subscribe", req.url))
-      }
-    }
+    // Dashboard subscription check is now securely handled by Server Components (layout.tsx)
+    // to bypass NextAuth JWT staleness edge cases.
 
     return NextResponse.next()
   },
