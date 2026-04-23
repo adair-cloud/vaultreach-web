@@ -2,7 +2,7 @@ import { withAuth } from "next-auth/middleware"
 import { NextResponse } from "next/server"
 
 export default withAuth(
-  async function middleware(req) {
+  async function middleware() {
     // Dashboard subscription check is now securely handled by Server Components (layout.tsx)
     // to bypass NextAuth JWT staleness edge cases.
 
