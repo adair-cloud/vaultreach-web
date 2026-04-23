@@ -706,11 +706,21 @@ export default function Dashboard() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                         {[
                           "Push to start 7-day free trial",
-                          "Never offer a discount",
+                          "Push for an in-person site visit or consultation",
+                          "Ask for a phone number to schedule a quick call",
+                          "Direct prospects to fill out an intake form",
                           "Book a 15-minute Zoom discovery call",
+                          "Never offer a discount",
+                          "Politely decline leads with budgets under $1,000",
+                          "Highlight our 100% money-back guarantee if asked about risk",
+                          "Pivot to value/quality instead of competing on price",
                           "Do not mention pricing unless directly asked",
-                          "Keep replies under 3 sentences",
+                          "Emphasize that we are a local, family-owned business",
                           "Provide case studies when asked for proof",
+                          "Always ask exactly ONE qualifying question per email",
+                          "Start every reply with a genuine compliment about their business",
+                          "Use emojis naturally in responses",
+                          "Keep replies under 3 sentences",
                         ].map(rule => (
                           <div 
                             key={rule}
