@@ -47,14 +47,14 @@ export default function SuccessPage() {
       await new Promise(r => setTimeout(r, 1200))
 
       // Force JWT refresh — now that DB has stripeSubscriptionId, the token will pick it up
-      await update()
+      await update({ forceRefresh: true })
 
       // Step 2 — Configuring pipeline
       setStepIndex(2)
       await new Promise(r => setTimeout(r, 1200))
 
       // Second JWT refresh for certainty
-      await update()
+      await update({ forceRefresh: true, timestamp: Date.now() })
 
       // Step 3 — Done
       setStepIndex(3)

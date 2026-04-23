@@ -47,6 +47,8 @@ export const authOptions: NextAuthOptions = {
       session.user.id = token.id
       // @ts-expect-error: NextAuth dynamically injects accessToken but types omit it
       session.accessToken = token.accessToken
+      // @ts-expect-error: Expose subscription to client so update() detects changes
+      session.stripeSubscriptionId = token.stripeSubscriptionId
       return session
     }
   },
