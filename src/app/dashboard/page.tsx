@@ -6,7 +6,7 @@ import { useSession, signOut } from "next-auth/react"
 import {
   BarChart3, Target, BrainCircuit, LogOut, Save, CheckCircle,
   Mail, Calendar, TrendingUp, Zap, Clock, MessageSquareText,
-  Bot, ChevronRight, Unplug
+  Bot, ChevronRight, Unplug, Check
 } from "lucide-react"
 
 const VaultLogo = () => (
@@ -45,9 +45,15 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("overview")
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [url, setUrl] = useState("")
-  const [icp, setIcp] = useState("")
+  // Targeting State
+  const [selectedTitles, setSelectedTitles] = useState<string[]>([])
+  const [selectedIndustries, setSelectedIndustries] = useState<string[]>([])
+  const [employeeRange, setEmployeeRange] = useState("1-50")
+  
+  // Brain State
   const [tone, setTone] = useState("professional")
-  const [rules, setRules] = useState("")
+  const [selectedRules, setSelectedRules] = useState<string[]>([])
+  const [customRules, setCustomRules] = useState("")
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState(false)
   const [hasIcp, setHasIcp] = useState(false)
@@ -69,9 +75,22 @@ export default function Dashboard() {
         const { campaign } = await res.json()
         if (campaign) {
           setUrl(campaign.websiteUrl ?? "")
-          setIcp(campaign.targetIndustry ?? "")
+          
+          // Parse Targets
+          setSelectedTitles(campaign.targetTitles ? campaign.targetTitles.split(',').map((s: string) => s.trim()).filter(Boolean) : [])
+          setSelectedIndustries(campaign.targetIndustry ? campaign.targetIndustry.split(',').map((s: string) => s.trim()).filter(Boolean) : [])
+          setEmployeeRange(campaign.employeeRange ?? "1-50")
+          
           setTone(campaign.tone ?? "professional")
-          setRules(campaign.rules ?? "")
+          
+          // Parse Rules JSON
+          try {
+            const parsedRules = JSON.parse(campaign.rules || "{}")
+            setSelectedRules(parsedRules.presets || [])
+            setCustomRules(parsedRules.custom || "")
+          } catch {
+            setCustomRules(campaign.rules || "") // legacy fallback
+          }
           setHasIcp(Boolean(campaign.targetIndustry?.trim()))
           setLastPing(campaign.lastPing ?? null)
           setCampaignStatus(campaign.status === "active" ? "active" : "inactive")
@@ -96,12 +115,21 @@ export default function Dashboard() {
         // Each tab only sends the fields it owns
         body: JSON.stringify(
           activeTab === "brain"
-            ? { tone, rules }
-            : { websiteUrl: url, targetIndustry: icp, targetLocations: "" }
+            ? { 
+                tone, 
+                rules: JSON.stringify({ presets: selectedRules, custom: customRules }) 
+              }
+            : { 
+                websiteUrl: url, 
+                targetIndustry: selectedIndustries.join(","), 
+                targetTitles: selectedTitles.join(","),
+                employeeRange,
+                targetLocations: "" 
+              }
         ),
       })
       if (!res.ok) throw new Error("Save failed")
-      if (activeTab === "targeting" && icp.trim()) setHasIcp(true)
+      if (activeTab === "targeting" && selectedIndustries.length > 0) setHasIcp(true)
       setSaveSuccess(true)
       setSaveError(false)
       setTimeout(() => setSaveSuccess(false), 3000)
@@ -351,50 +379,81 @@ export default function Dashboard() {
                     <p className="text-slate-600 text-sm font-medium max-w-xl leading-relaxed">
                       While you focus on delivering great work, VaultReach is scraping leads, writing personalized outreach, and filling your pipeline around the clock.
                     </p>
-                    {analytics.emailsSent === 0 && (
-                      <div className="mt-5 inline-flex items-center gap-2 bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-2 text-indigo-700 text-xs font-bold shadow-sm">
-                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-                        Warming up — your first batch of emails typically sends within 24 hours of setup.
+                    {campaignStatus === "inactive" && analytics.emailsSent === 0 ? (
+                      <div className="mt-6">
+                        <button
+                          id="toggle-campaign-btn"
+                          disabled={isTogglingStatus}
+                          onClick={async () => {
+                            setIsTogglingStatus(true)
+                            try {
+                              const res = await fetch("/api/campaigns", {
+                                method: "PATCH",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ status: "active" }),
+                              })
+                              if (res.ok) setCampaignStatus("active")
+                            } finally {
+                              setIsTogglingStatus(false)
+                            }
+                          }}
+                          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm px-6 py-3.5 rounded-xl transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-50"
+                        >
+                          <Zap size={18} className={isTogglingStatus ? "animate-pulse" : ""} />
+                          {isTogglingStatus ? "Launching Engine..." : "Launch AI Sales Assistant"}
+                        </button>
+                        <p className="text-slate-400 text-xs font-medium mt-3">
+                          Clicking this will activate your digital employee and begin live prospecting.
+                        </p>
                       </div>
+                    ) : (
+                      <>
+                        {analytics.emailsSent === 0 && campaignStatus === "active" && (
+                          <div className="mt-5 inline-flex items-center gap-2 bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-2 text-indigo-700 text-xs font-bold shadow-sm">
+                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                            Warming up — your first batch of emails typically sends within 24 hours of setup.
+                          </div>
+                        )}
+                        {/* ── Pause / Resume Toggle ── */}
+                        <div className="mt-5 flex items-center gap-3">
+                          <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold border ${
+                            campaignStatus === "active"
+                              ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                              : "bg-slate-100 border-slate-200 text-slate-500"
+                          }`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${
+                              campaignStatus === "active" ? "bg-emerald-500 animate-pulse" : "bg-slate-400"
+                            }`} />
+                            {campaignStatus === "active" ? "Active" : "Paused"}
+                          </div>
+                          <button
+                            id="toggle-campaign-btn"
+                            disabled={isTogglingStatus}
+                            onClick={async () => {
+                              const newStatus = campaignStatus === "active" ? "inactive" : "active"
+                              setIsTogglingStatus(true)
+                              try {
+                                const res = await fetch("/api/campaigns", {
+                                  method: "PATCH",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({ status: newStatus }),
+                                })
+                                if (res.ok) setCampaignStatus(newStatus)
+                              } finally {
+                                setIsTogglingStatus(false)
+                              }
+                            }}
+                            className={`text-xs font-bold px-4 py-1.5 rounded-xl border transition-all disabled:opacity-50 ${
+                              campaignStatus === "active"
+                                ? "bg-white border-slate-200 text-slate-700 hover:border-red-300 hover:text-red-600"
+                                : "bg-indigo-600 border-indigo-600 text-white hover:bg-indigo-700"
+                            }`}
+                          >
+                            {isTogglingStatus ? "Updating..." : campaignStatus === "active" ? "Pause Campaign" : "Resume Campaign"}
+                          </button>
+                        </div>
+                      </>
                     )}
-                    {/* ── Pause / Resume Toggle ── */}
-                    <div className="mt-5 flex items-center gap-3">
-                      <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold border ${
-                        campaignStatus === "active"
-                          ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                          : "bg-slate-100 border-slate-200 text-slate-500"
-                      }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${
-                          campaignStatus === "active" ? "bg-emerald-500 animate-pulse" : "bg-slate-400"
-                        }`} />
-                        {campaignStatus === "active" ? "Active" : "Paused"}
-                      </div>
-                      <button
-                        id="toggle-campaign-btn"
-                        disabled={isTogglingStatus}
-                        onClick={async () => {
-                          const newStatus = campaignStatus === "active" ? "inactive" : "active"
-                          setIsTogglingStatus(true)
-                          try {
-                            const res = await fetch("/api/campaigns", {
-                              method: "PATCH",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ status: newStatus }),
-                            })
-                            if (res.ok) setCampaignStatus(newStatus)
-                          } finally {
-                            setIsTogglingStatus(false)
-                          }
-                        }}
-                        className={`text-xs font-bold px-4 py-1.5 rounded-xl border transition-all disabled:opacity-50 ${
-                          campaignStatus === "active"
-                            ? "bg-white border-slate-200 text-slate-700 hover:border-red-300 hover:text-red-600"
-                            : "bg-indigo-600 border-indigo-600 text-white hover:bg-indigo-700"
-                        }`}
-                      >
-                        {isTogglingStatus ? "Updating..." : campaignStatus === "active" ? "Pause Campaign" : "Resume Campaign"}
-                      </button>
-                    </div>
                   </div>
                 </div>
 
@@ -521,12 +580,70 @@ export default function Dashboard() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-slate-800 mb-2">Who is your perfect customer?</label>
-                      <textarea
-                        value={icp} onChange={e => setIcp(e.target.value)} rows={4}
-                        placeholder="e.g. Restaurants and cafes in Austin, Texas with 5–50 employees needing commercial plumbing services."
-                        className="w-full rounded-xl p-3.5 text-slate-900 bg-white placeholder-slate-400 font-medium outline-none transition-all border-2 border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 shadow-sm resize-none"
-                      />
+                      <label className="block text-sm font-bold text-slate-800 mb-2">Target Roles (Select all that apply)</label>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                        {["CEO", "Founder", "Co-Founder", "VP Sales", "VP Marketing", "Owner", "Managing Director", "Partner"].map(title => (
+                          <div 
+                            key={title}
+                            onClick={() => setSelectedTitles(prev => prev.includes(title) ? prev.filter(t => t !== title) : [...prev, title])}
+                            className={`cursor-pointer flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${
+                              selectedTitles.includes(title) 
+                                ? "bg-indigo-50 border-indigo-500 text-indigo-700" 
+                                : "bg-white border-slate-200 hover:border-indigo-200 text-slate-700"
+                            }`}
+                          >
+                            <div className={`w-5 h-5 rounded flex items-center justify-center shrink-0 border ${
+                              selectedTitles.includes(title) ? "bg-indigo-600 border-indigo-600" : "bg-white border-slate-300"
+                            }`}>
+                              {selectedTitles.includes(title) && <Check size={14} className="text-white" />}
+                            </div>
+                            <span className="text-sm font-bold">{title}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-bold text-slate-800 mb-2">Target Industries (Select all that apply)</label>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {["SaaS", "Marketing Agencies", "Lead Generation", "Real Estate", "Consulting", "Accounting", "Software Development", "Recruiting"].map(ind => (
+                          <div 
+                            key={ind}
+                            onClick={() => setSelectedIndustries(prev => prev.includes(ind) ? prev.filter(i => i !== ind) : [...prev, ind])}
+                            className={`cursor-pointer flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${
+                              selectedIndustries.includes(ind) 
+                                ? "bg-indigo-50 border-indigo-500 text-indigo-700" 
+                                : "bg-white border-slate-200 hover:border-indigo-200 text-slate-700"
+                            }`}
+                          >
+                            <div className={`w-5 h-5 rounded flex items-center justify-center shrink-0 border ${
+                              selectedIndustries.includes(ind) ? "bg-indigo-600 border-indigo-600" : "bg-white border-slate-300"
+                            }`}>
+                              {selectedIndustries.includes(ind) && <Check size={14} className="text-white" />}
+                            </div>
+                            <span className="text-sm font-bold">{ind}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-bold text-slate-800 mb-2">Company Size (Employee Count)</label>
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                        {["1-10", "11-50", "51-200", "201-500", "501+"].map(range => (
+                          <div 
+                            key={range}
+                            onClick={() => setEmployeeRange(range)}
+                            className={`cursor-pointer flex items-center justify-center p-3 rounded-xl border-2 transition-all ${
+                              employeeRange === range 
+                                ? "bg-indigo-50 border-indigo-500 text-indigo-700" 
+                                : "bg-white border-slate-200 hover:border-indigo-200 text-slate-700"
+                            }`}
+                          >
+                            <span className="text-sm font-bold">{range}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                     <div className="flex items-center gap-4 pt-4 border-t border-slate-100">
                       <button type="submit" disabled={isSaving} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-xl transition-all shadow-md hover:shadow-lg disabled:opacity-60 text-sm">
@@ -584,11 +701,40 @@ export default function Dashboard() {
                         Auto-Reply Guardrails
                       </label>
                       <p className="text-xs text-slate-500 mb-3 font-medium">
-                        Custom rules the AI follows when handling replies. e.g., &quot;Never offer a discount&quot; or &quot;If asked for pricing, say it starts at $5,000.&quot;
+                        Select the primary behaviors the AI should follow when negotiating with leads.
                       </p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                        {[
+                          "Push to start 7-day free trial",
+                          "Never offer a discount",
+                          "Book a 15-minute Zoom discovery call",
+                          "Do not mention pricing unless directly asked",
+                          "Keep replies under 3 sentences",
+                          "Provide case studies when asked for proof",
+                        ].map(rule => (
+                          <div 
+                            key={rule}
+                            onClick={() => setSelectedRules(prev => prev.includes(rule) ? prev.filter(r => r !== rule) : [...prev, rule])}
+                            className={`cursor-pointer flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${
+                              selectedRules.includes(rule) 
+                                ? "bg-indigo-50 border-indigo-500 text-indigo-700" 
+                                : "bg-white border-slate-200 hover:border-indigo-200 text-slate-700"
+                            }`}
+                          >
+                            <div className={`w-5 h-5 rounded flex items-center justify-center shrink-0 border ${
+                              selectedRules.includes(rule) ? "bg-indigo-600 border-indigo-600" : "bg-white border-slate-300"
+                            }`}>
+                              {selectedRules.includes(rule) && <Check size={14} className="text-white" />}
+                            </div>
+                            <span className="text-sm font-bold">{rule}</span>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      <label className="block text-sm font-bold text-slate-800 mb-2 mt-6">Additional Custom Notes</label>
                       <textarea
-                        value={rules} onChange={e => setRules(e.target.value)} rows={5}
-                        placeholder="Always push for Wednesday or Thursday calls. Do not mention specific product features unless asked directly."
+                        value={customRules} onChange={e => setCustomRules(e.target.value)} rows={3}
+                        placeholder="e.g. Always push for Wednesday or Thursday calls. Do not mention specific product features."
                         className="w-full rounded-xl p-3.5 text-slate-900 bg-white placeholder-slate-400 font-medium outline-none transition-all border-2 border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 shadow-sm resize-none"
                       />
                     </div>

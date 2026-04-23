@@ -81,7 +81,7 @@ export async function POST(req: Request) {
         targetLocations: targetLocations ?? "",
         tone:            tone            ?? "professional",
         rules:           rules           ?? null,
-        status:          "active",
+        status:          "inactive",
       },
     })
   }
