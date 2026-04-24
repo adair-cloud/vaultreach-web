@@ -59,6 +59,9 @@ export default function Dashboard() {
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState(false)
   const [hasIcp, setHasIcp] = useState(false)
+  const [appPassword, setAppPassword] = useState("")
+  const [hasAppPassword, setHasAppPassword] = useState(false)
+  const [isSavingPassword, setIsSavingPassword] = useState(false)
   const [campaignStatus, setCampaignStatus] = useState<"active" | "inactive">("inactive")
   const [isTogglingStatus, setIsTogglingStatus] = useState(false)
   const [lastPing, setLastPing] = useState<string | null>(null)
@@ -74,7 +77,8 @@ export default function Dashboard() {
     async function load() {
       const res = await fetch("/api/campaigns")
       if (res.ok) {
-        const { campaign } = await res.json()
+        const { campaign, hasAppPassword: dbHasAppPassword } = await res.json()
+        setHasAppPassword(dbHasAppPassword)
         if (campaign) {
           setUrl(campaign.websiteUrl ?? "")
           
@@ -341,9 +345,70 @@ export default function Dashboard() {
                         </div>
                         <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-full">Done</span>
                       </div>
+                      
+                      {/* Step 1.5 - App Password */}
+                      {!hasAppPassword ? (
+                        <div className="flex flex-col gap-3 rounded-2xl p-5 bg-white border-2 border-indigo-500 shadow-sm">
+                          <div className="flex items-center gap-4">
+                            <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center shrink-0 shadow-sm">
+                              <Target size={16} className="text-white" />
+                            </div>
+                            <div className="flex-1">
+                              <div className="text-slate-900 font-bold text-sm">Add Google App Password</div>
+                              <div className="text-slate-500 text-xs font-medium">Allows the AI to read replies without triggering Google Security Audits.</div>
+                            </div>
+                          </div>
+                          <div className="ml-12 mt-1">
+                            <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer" className="text-indigo-600 text-xs font-bold hover:underline mb-2 block">
+                              Click here to generate a 16-character App Password &rarr;
+                            </a>
+                            <div className="flex gap-2">
+                              <input 
+                                type="password" 
+                                value={appPassword}
+                                onChange={e => setAppPassword(e.target.value)}
+                                placeholder="xxxx xxxx xxxx xxxx"
+                                className="flex-1 rounded-xl p-2.5 text-sm border-2 border-slate-200 focus:border-indigo-500 outline-none"
+                              />
+                              <button 
+                                onClick={async () => {
+                                  if (appPassword.length < 15) return alert("Please enter a valid 16-character app password")
+                                  setIsSavingPassword(true)
+                                  try {
+                                    await fetch("/api/campaigns", {
+                                      method: "POST",
+                                      headers: { "Content-Type": "application/json" },
+                                      body: JSON.stringify({ appPassword })
+                                    })
+                                    setHasAppPassword(true)
+                                  } finally {
+                                    setIsSavingPassword(false)
+                                  }
+                                }}
+                                disabled={isSavingPassword || !appPassword}
+                                className="bg-indigo-600 text-white font-bold text-xs px-4 py-2 rounded-xl disabled:opacity-50"
+                              >
+                                {isSavingPassword ? "Saving..." : "Save Password"}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-4 rounded-2xl px-5 py-4 bg-emerald-50 border border-emerald-100">
+                          <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center shrink-0 shadow-sm">
+                            <CheckCircle size={16} className="text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="text-emerald-900 font-bold text-sm">App Password Verified</div>
+                            <div className="text-emerald-600 text-xs font-medium">Inbox fully connected for auto-replies.</div>
+                          </div>
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-full">Done</span>
+                        </div>
+                      )}
+
                       {/* Step 2 */}
-                      <div className="flex items-center gap-4 rounded-2xl px-5 py-4 bg-white border-2 border-indigo-500 shadow-sm">
-                        <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center shrink-0 shadow-sm">
+                      <div className={`flex items-center gap-4 rounded-2xl px-5 py-4 ${hasAppPassword ? "bg-white border-2 border-indigo-500 shadow-sm" : "bg-slate-50 border border-slate-200 opacity-60"}`}>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-sm ${hasAppPassword ? "bg-indigo-600" : "bg-slate-300"}`}>
                           <Target size={16} className="text-white" />
                         </div>
                         <div className="flex-1">
@@ -351,8 +416,9 @@ export default function Dashboard() {
                           <div className="text-slate-500 text-xs font-medium">Tell the AI who to target — takes 60 seconds.</div>
                         </div>
                         <button
+                          disabled={!hasAppPassword}
                           onClick={() => setActiveTab("targeting")}
-                          className="shrink-0 flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition-all shadow-sm"
+                          className="shrink-0 flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition-all shadow-sm disabled:opacity-50"
                         >
                           Set Up <ChevronRight size={12} />
                         </button>

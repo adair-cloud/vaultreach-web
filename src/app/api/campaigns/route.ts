@@ -17,7 +17,9 @@ export async function GET() {
   if (!user) return NextResponse.json({ campaign: null })
 
   const campaign = user.campaigns[0] ?? null
-  return NextResponse.json({ campaign })
+  // Expose whether the user has set an app password (don't send the actual password for security, just a boolean)
+  const hasAppPassword = !!user.appPassword
+  return NextResponse.json({ campaign, hasAppPassword })
 }
 
 export async function POST(req: Request) {
@@ -70,6 +72,14 @@ export async function POST(req: Request) {
         ...(rules           !== undefined && { rules }),
       },
     })
+    
+    // Also update User if appPassword is provided (typically from the overview/setup tab)
+    if (body.appPassword !== undefined) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { appPassword: body.appPassword }
+      })
+    }
   } else {
     campaign = await prisma.campaign.create({
       data: {
