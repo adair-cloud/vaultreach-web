@@ -350,6 +350,22 @@ export default function Dashboard() {
             {activeTab === "overview" && (
               <motion.div key="overview" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} className="space-y-6">
 
+                {/* ── ACTIVE CAMPAIGN WARNING: App Password missing ── */}
+                {hasIcp && !hasAppPassword && (
+                  <div className="flex items-center gap-3 rounded-2xl px-5 py-4 bg-amber-50 border border-amber-200 shadow-sm">
+                    <div className="w-8 h-8 rounded-full bg-amber-400 flex items-center justify-center shrink-0">
+                      <span className="text-white font-black text-sm">!</span>
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-amber-900 font-bold text-sm">Action Required: Set Your App Password</div>
+                      <div className="text-amber-700 text-xs font-medium">Your campaign is active but no emails are being sent. Add your Google App Password in the setup steps below.</div>
+                    </div>
+                    <button onClick={() => setActiveTab("overview")} className="text-amber-700 text-xs font-bold border border-amber-300 bg-amber-100 px-3 py-1.5 rounded-xl hover:bg-amber-200 transition-colors">
+                      Fix Now
+                    </button>
+                  </div>
+                )}
+
                 {/* ── COLD-START: Setup Checklist ── */}
                 {(!hasIcp || !hasAppPassword) ? (
                   <div className="rounded-3xl p-8 bg-white border border-slate-200 shadow-sm">
@@ -397,14 +413,19 @@ export default function Dashboard() {
                               />
                               <button 
                                 onClick={async () => {
-                                  if (appPassword.length < 15) return alert("Please enter a valid 16-character app password")
+                                  if (appPassword.replace(/\s/g, "").length < 16) return alert("Please enter a valid 16-character app password")
                                   setIsSavingPassword(true)
                                   try {
-                                    await fetch("/api/campaigns", {
+                                    const res = await fetch("/api/campaigns/validate-smtp", {
                                       method: "POST",
                                       headers: { "Content-Type": "application/json" },
                                       body: JSON.stringify({ appPassword })
                                     })
+                                    if (!res.ok) {
+                                      const { error } = await res.json()
+                                      alert(`❌ ${error}`)
+                                      return
+                                    }
                                     setHasAppPassword(true)
                                   } finally {
                                     setIsSavingPassword(false)
