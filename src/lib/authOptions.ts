@@ -31,7 +31,8 @@ export const authOptions: NextAuthOptions = {
         
         // Forced Stripe Sync: Mitigates Vercel/Neon branching data loss 
         // by recovering their active subscription and campaign shell from Stripe directly.
-        if (!user.stripeSubscriptionId && user.email) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (!(user as any).stripeSubscriptionId && user.email) {
           try {
             const customers = await stripe.customers.list({ email: user.email, limit: 1 })
             if (customers.data.length > 0) {
