@@ -120,21 +120,16 @@ export default function Dashboard() {
       const res = await fetch("/api/campaigns", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // Each tab only sends the fields it owns
-        body: JSON.stringify(
-          activeTab === "brain"
-            ? { 
-                tone, 
-                rules: JSON.stringify({ presets: selectedRules, custom: customRules, coreOffer }) 
-              }
-            : { 
-                websiteUrl: url, 
-                targetIndustry: selectedIndustries.join(","), 
-                targetTitles: selectedTitles.join(","),
-                employeeRange,
-                targetLocations 
-              }
-        ),
+        // Always save all fields regardless of active tab
+        body: JSON.stringify({
+          websiteUrl: url,
+          targetIndustry: selectedIndustries.join(","),
+          targetTitles: selectedTitles.join(","),
+          employeeRange,
+          targetLocations,
+          tone,
+          rules: JSON.stringify({ presets: selectedRules, custom: customRules, coreOffer })
+        }),
       })
       if (!res.ok) throw new Error("Save failed")
       if (activeTab === "targeting" && selectedIndustries.length > 0) setHasIcp(true)
@@ -477,6 +472,22 @@ export default function Dashboard() {
                           onClick={async () => {
                             setIsTogglingStatus(true)
                             try {
+                              // 1. Force-save all form data
+                              await fetch("/api/campaigns", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                  websiteUrl: url,
+                                  targetIndustry: selectedIndustries.join(","),
+                                  targetTitles: selectedTitles.join(","),
+                                  employeeRange,
+                                  targetLocations,
+                                  tone,
+                                  rules: JSON.stringify({ presets: selectedRules, custom: customRules, coreOffer })
+                                })
+                              })
+                              
+                              // 2. Set campaign to active
                               const res = await fetch("/api/campaigns", {
                                 method: "PATCH",
                                 headers: { "Content-Type": "application/json" },
@@ -523,6 +534,23 @@ export default function Dashboard() {
                               const newStatus = campaignStatus === "active" ? "inactive" : "active"
                               setIsTogglingStatus(true)
                               try {
+                                if (newStatus === "active") {
+                                  // Force-save all form data before activating
+                                  await fetch("/api/campaigns", {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({
+                                      websiteUrl: url,
+                                      targetIndustry: selectedIndustries.join(","),
+                                      targetTitles: selectedTitles.join(","),
+                                      employeeRange,
+                                      targetLocations,
+                                      tone,
+                                      rules: JSON.stringify({ presets: selectedRules, custom: customRules, coreOffer })
+                                    })
+                                  })
+                                }
+
                                 const res = await fetch("/api/campaigns", {
                                   method: "PATCH",
                                   headers: { "Content-Type": "application/json" },
