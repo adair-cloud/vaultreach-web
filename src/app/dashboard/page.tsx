@@ -326,7 +326,7 @@ export default function Dashboard() {
               <motion.div key="overview" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} className="space-y-6">
 
                 {/* ── COLD-START: Setup Checklist ── */}
-                {!hasIcp ? (
+                {(!hasIcp || !hasAppPassword) ? (
                   <div className="rounded-3xl p-8 bg-white border border-slate-200 shadow-sm">
                     <div className="mb-6">
                       <div className="text-indigo-600 font-bold text-sm mb-1">{getGreeting()}, {userName} 👋</div>
@@ -407,22 +407,42 @@ export default function Dashboard() {
                       )}
 
                       {/* Step 2 */}
-                      <div className={`flex items-center gap-4 rounded-2xl px-5 py-4 ${hasAppPassword ? "bg-white border-2 border-indigo-500 shadow-sm" : "bg-slate-50 border border-slate-200 opacity-60"}`}>
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-sm ${hasAppPassword ? "bg-indigo-600" : "bg-slate-300"}`}>
-                          <Target size={16} className="text-white" />
+                      {hasIcp ? (
+                        <div className="flex items-center gap-4 rounded-2xl px-5 py-4 bg-emerald-50 border border-emerald-100">
+                          <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center shrink-0 shadow-sm">
+                            <CheckCircle size={16} className="text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="text-emerald-900 font-bold text-sm">Targeting Configured</div>
+                            <div className="text-emerald-600 text-xs font-medium">Ideal Customer Profile is set.</div>
+                          </div>
+                          <button
+                            onClick={() => setActiveTab("targeting")}
+                            className="shrink-0 text-indigo-600 hover:text-indigo-700 font-bold text-xs transition-colors"
+                          >
+                            Edit
+                          </button>
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-full">Done</span>
                         </div>
-                        <div className="flex-1">
-                          <div className="text-slate-900 font-bold text-sm">Set your Ideal Customer Profile</div>
-                          <div className="text-slate-500 text-xs font-medium">Tell the AI who to target — takes 60 seconds.</div>
+                      ) : (
+                        <div className={`flex items-center gap-4 rounded-2xl px-5 py-4 ${hasAppPassword ? "bg-white border-2 border-indigo-500 shadow-sm" : "bg-slate-50 border border-slate-200 opacity-60"}`}>
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-sm ${hasAppPassword ? "bg-indigo-600" : "bg-slate-300"}`}>
+                            <Target size={16} className="text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="text-slate-900 font-bold text-sm">Set your Ideal Customer Profile</div>
+                            <div className="text-slate-500 text-xs font-medium">Tell the AI who to target — takes 60 seconds.</div>
+                          </div>
+                          <button
+                            disabled={!hasAppPassword}
+                            onClick={() => setActiveTab("targeting")}
+                            className="shrink-0 flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition-all shadow-sm disabled:opacity-50"
+                          >
+                            Set Up <ChevronRight size={12} />
+                          </button>
                         </div>
-                        <button
-                          disabled={!hasAppPassword}
-                          onClick={() => setActiveTab("targeting")}
-                          className="shrink-0 flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition-all shadow-sm disabled:opacity-50"
-                        >
-                          Set Up <ChevronRight size={12} />
-                        </button>
-                      </div>
+                      )}
+
                       {/* Step 3 */}
                       <div className="flex items-center gap-4 rounded-2xl px-5 py-4 bg-slate-50 border border-slate-200 opacity-60">
                         <div className="w-8 h-8 rounded-full border-2 border-slate-300 flex items-center justify-center shrink-0 bg-white">
