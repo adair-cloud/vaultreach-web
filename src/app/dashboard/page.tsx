@@ -65,6 +65,11 @@ export default function Dashboard() {
   const [campaignStatus, setCampaignStatus] = useState<"active" | "inactive">("inactive")
   const [isTogglingStatus, setIsTogglingStatus] = useState(false)
   const [lastPing, setLastPing] = useState<string | null>(null)
+  const [timezone, setTimezone] = useState("America/New_York")
+  const [sendWindowStart, setSendWindowStart] = useState(9)
+  const [sendWindowEnd, setSendWindowEnd] = useState(17)
+  const [sendDays, setSendDays] = useState<string[]>(["1", "2", "3", "4", "5"])
+
   const [analytics, setAnalytics] = useState<{
     emailsSent: number
     replies: number
@@ -102,6 +107,11 @@ export default function Dashboard() {
           setHasIcp(Boolean(campaign.targetIndustry?.trim()))
           setLastPing(campaign.lastPing ?? null)
           setCampaignStatus(campaign.status === "active" ? "active" : "inactive")
+          
+          if (campaign.timezone) setTimezone(campaign.timezone)
+          if (campaign.sendWindowStart !== undefined) setSendWindowStart(campaign.sendWindowStart)
+          if (campaign.sendWindowEnd !== undefined) setSendWindowEnd(campaign.sendWindowEnd)
+          if (campaign.sendDays) setSendDays(campaign.sendDays.split(','))
         }
       }
       const analyticsRes = await fetch("/api/analytics")
@@ -128,7 +138,11 @@ export default function Dashboard() {
           employeeRange,
           targetLocations,
           tone,
-          rules: JSON.stringify({ presets: selectedRules, custom: customRules, coreOffer })
+          rules: JSON.stringify({ presets: selectedRules, custom: customRules, coreOffer }),
+          timezone,
+          sendWindowStart,
+          sendWindowEnd,
+          sendDays: sendDays.join(",")
         }),
       })
       if (!res.ok) throw new Error("Save failed")
@@ -171,6 +185,7 @@ export default function Dashboard() {
     { id: "overview", icon: BarChart3, label: "Overview" },
     { id: "targeting", icon: Target, label: "Lead Targeting" },
     { id: "brain", icon: BrainCircuit, label: "AI Brain" },
+    { id: "schedule", icon: Calendar, label: "Schedule" },
   ]
 
   const kpis = [
@@ -302,7 +317,7 @@ export default function Dashboard() {
         {/* Header */}
         <header className="h-16 sticky top-0 z-20 flex items-center justify-between px-8 border-b border-slate-200 bg-white/80 backdrop-blur-md">
           <div>
-            <div className="text-slate-900 font-extrabold text-base">{activeTab === "brain" ? "AI Messaging Brain" : activeTab === "targeting" ? "Lead Targeting" : "Performance Overview"}</div>
+            <div className="text-slate-900 font-extrabold text-base">{activeTab === "brain" ? "AI Messaging Brain" : activeTab === "targeting" ? "Lead Targeting" : activeTab === "schedule" ? "Sending Schedule" : "Performance Overview"}</div>
             <div className="text-slate-500 text-xs font-semibold">VaultReach Campaign Dashboard</div>
           </div>
           <div className="flex items-center gap-3">
@@ -483,7 +498,11 @@ export default function Dashboard() {
                                   employeeRange,
                                   targetLocations,
                                   tone,
-                                  rules: JSON.stringify({ presets: selectedRules, custom: customRules, coreOffer })
+                                  rules: JSON.stringify({ presets: selectedRules, custom: customRules, coreOffer }),
+                                  timezone,
+                                  sendWindowStart,
+                                  sendWindowEnd,
+                                  sendDays: sendDays.join(",")
                                 })
                               })
                               
@@ -546,7 +565,11 @@ export default function Dashboard() {
                                       employeeRange,
                                       targetLocations,
                                       tone,
-                                      rules: JSON.stringify({ presets: selectedRules, custom: customRules, coreOffer })
+                                      rules: JSON.stringify({ presets: selectedRules, custom: customRules, coreOffer }),
+                                      timezone,
+                                      sendWindowStart,
+                                      sendWindowEnd,
+                                      sendDays: sendDays.join(",")
                                     })
                                   })
                                 }
@@ -885,6 +908,111 @@ export default function Dashboard() {
                     <div className="flex items-center gap-4 pt-4 border-t border-slate-100">
                       <button type="submit" disabled={isSaving} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-xl transition-all shadow-md hover:shadow-lg disabled:opacity-60 text-sm">
                         {isSaving ? "Saving..." : <><Save size={16} /> Train AI Assistant</>}
+                      </button>
+                      {saveSuccess && (
+                        <span className="flex items-center gap-1.5 text-emerald-600 font-bold text-sm bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100">
+                          <CheckCircle size={15} /> Saved successfully!
+                        </span>
+                      )}
+                      {saveError && (
+                        <span className="flex items-center gap-1.5 text-rose-600 font-bold text-sm bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-100">
+                          Save failed — please try again.
+                        </span>
+                      )}
+                    </div>
+                  </form>
+                </div>
+              </motion.div>
+            )}
+          {activeTab === "schedule" && (
+              <motion.div key="schedule" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
+                <div className="rounded-2xl overflow-hidden bg-white border border-slate-200 shadow-sm">
+                  <div className="bg-slate-50 border-b border-slate-200 px-8 py-5">
+                    <h2 className="text-slate-900 font-extrabold text-lg flex items-center gap-2">
+                      <Calendar size={20} className="text-indigo-600" />
+                      Sending Schedule
+                    </h2>
+                    <p className="text-slate-500 text-sm mt-1">Control exactly when VaultReach sends outreach to protect your domain reputation.</p>
+                  </div>
+                  <form onSubmit={handleSave} className="p-8 space-y-8">
+                    <div>
+                      <label className="block text-sm font-bold text-slate-800 mb-2">Timezone</label>
+                      <select
+                        value={timezone}
+                        onChange={(e) => setTimezone(e.target.value)}
+                        className="w-full max-w-md rounded-xl p-3 text-sm border-2 border-slate-200 focus:border-indigo-500 outline-none"
+                      >
+                        <option value="America/New_York">Eastern Time (ET)</option>
+                        <option value="America/Chicago">Central Time (CT)</option>
+                        <option value="America/Denver">Mountain Time (MT)</option>
+                        <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                        <option value="Europe/London">London (GMT)</option>
+                        <option value="Europe/Paris">Central Europe (CET)</option>
+                        <option value="Australia/Sydney">Sydney (AEDT)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-bold text-slate-800 mb-2">Sending Window</label>
+                      <div className="flex items-center gap-4">
+                        <select
+                          value={sendWindowStart}
+                          onChange={(e) => setSendWindowStart(Number(e.target.value))}
+                          className="rounded-xl p-3 text-sm border-2 border-slate-200 focus:border-indigo-500 outline-none"
+                        >
+                          {[...Array(24)].map((_, i) => (
+                            <option key={`start-${i}`} value={i}>{i === 0 ? "12 AM" : i < 12 ? `${i} AM` : i === 12 ? "12 PM" : `${i - 12} PM`}</option>
+                          ))}
+                        </select>
+                        <span className="text-slate-500 font-bold">to</span>
+                        <select
+                          value={sendWindowEnd}
+                          onChange={(e) => setSendWindowEnd(Number(e.target.value))}
+                          className="rounded-xl p-3 text-sm border-2 border-slate-200 focus:border-indigo-500 outline-none"
+                        >
+                          {[...Array(24)].map((_, i) => (
+                            <option key={`end-${i}`} value={i}>{i === 0 ? "12 AM" : i < 12 ? `${i} AM` : i === 12 ? "12 PM" : `${i - 12} PM`}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-bold text-slate-800 mb-2">Active Days</label>
+                      <div className="flex gap-2">
+                        {[
+                          { val: "1", label: "M" }, { val: "2", label: "T" }, { val: "3", label: "W" },
+                          { val: "4", label: "T" }, { val: "5", label: "F" }, { val: "6", label: "S" }, { val: "7", label: "S" }
+                        ].map(day => (
+                          <button
+                            key={day.val}
+                            type="button"
+                            onClick={() => {
+                              if (sendDays.includes(day.val)) {
+                                setSendDays(sendDays.filter(d => d !== day.val))
+                              } else {
+                                setSendDays([...sendDays, day.val])
+                              }
+                            }}
+                            className={`w-10 h-10 rounded-xl font-bold text-sm flex items-center justify-center transition-all ${
+                              sendDays.includes(day.val)
+                                ? "bg-indigo-600 text-white shadow-sm"
+                                : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                            }`}
+                          >
+                            {day.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="pt-4 flex items-center gap-4">
+                      <button
+                        type="submit"
+                        disabled={isSaving}
+                        className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all shadow-sm disabled:opacity-50"
+                      >
+                        {isSaving ? "Saving..." : <><Save size={16} /> Save Schedule</>}
                       </button>
                       {saveSuccess && (
                         <span className="flex items-center gap-1.5 text-emerald-600 font-bold text-sm bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100">

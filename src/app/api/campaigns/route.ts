@@ -38,6 +38,10 @@ export async function POST(req: Request) {
     // AI Brain fields — now stored in their own dedicated columns
     tone,
     rules,
+    timezone,
+    sendWindowStart,
+    sendWindowEnd,
+    sendDays,
   } = body
 
   const user = await prisma.user.findUnique({ where: { email: session.user.email } })
@@ -70,6 +74,10 @@ export async function POST(req: Request) {
         ...(targetLocations !== undefined && { targetLocations }),
         ...(tone            !== undefined && { tone }),
         ...(rules           !== undefined && { rules }),
+        ...(timezone        !== undefined && { timezone }),
+        ...(sendWindowStart !== undefined && { sendWindowStart }),
+        ...(sendWindowEnd   !== undefined && { sendWindowEnd }),
+        ...(sendDays        !== undefined && { sendDays }),
       },
     })
     
@@ -91,6 +99,10 @@ export async function POST(req: Request) {
         targetLocations: targetLocations ?? "",
         tone:            tone            ?? "professional",
         rules:           rules           ?? null,
+        timezone:        timezone        ?? "America/New_York",
+        sendWindowStart: sendWindowStart ?? 9,
+        sendWindowEnd:   sendWindowEnd   ?? 17,
+        sendDays:        sendDays        ?? "1,2,3,4,5",
         status:          "inactive",
       },
     })

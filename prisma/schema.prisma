@@ -73,6 +73,11 @@ model Campaign {
   // AI Brain settings — stored in their own columns, not hijacking ICP fields
   tone                  String    @default("professional")
   rules                 String?   @db.Text
+  // Scheduling Settings
+  timezone              String    @default("America/New_York")
+  sendWindowStart       Int       @default(9)  // 9 AM
+  sendWindowEnd         Int       @default(17) // 5 PM
+  sendDays              String    @default("1,2,3,4,5") // Mon-Fri
   // Worker heartbeat — updated by the Python worker each cycle
   lastPing              DateTime?
   createdAt             DateTime  @default(now())
