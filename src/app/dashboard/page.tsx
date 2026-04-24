@@ -6,7 +6,7 @@ import { useSession, signOut } from "next-auth/react"
 import {
   BarChart3, Target, BrainCircuit, LogOut, Save, CheckCircle,
   Mail, Calendar, TrendingUp, Zap, Clock, MessageSquareText,
-  Bot, ChevronRight, Unplug, Check
+  Bot, ChevronRight, Unplug, Check, Inbox, XCircle
 } from "lucide-react"
 
 const VaultLogo = () => (
@@ -69,6 +69,12 @@ export default function Dashboard() {
   const [sendWindowStart, setSendWindowStart] = useState(9)
   const [sendWindowEnd, setSendWindowEnd] = useState(17)
   const [sendDays, setSendDays] = useState<string[]>(["1", "2", "3", "4", "5"])
+  
+  // Draft Mode State
+  const [draftMode, setDraftMode] = useState(true)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [drafts, setDrafts] = useState<any[]>([])
+  const [isActioningDraft, setIsActioningDraft] = useState<string | null>(null)
 
   const [analytics, setAnalytics] = useState<{
     emailsSent: number
@@ -112,12 +118,19 @@ export default function Dashboard() {
           if (campaign.sendWindowStart !== undefined) setSendWindowStart(campaign.sendWindowStart)
           if (campaign.sendWindowEnd !== undefined) setSendWindowEnd(campaign.sendWindowEnd)
           if (campaign.sendDays) setSendDays(campaign.sendDays.split(','))
+          if (campaign.draftMode !== undefined) setDraftMode(campaign.draftMode)
         }
       }
       const analyticsRes = await fetch("/api/analytics")
       if (analyticsRes.ok) {
         const data = await analyticsRes.json()
         setAnalytics(data)
+      }
+      
+      const draftsRes = await fetch("/api/drafts")
+      if (draftsRes.ok) {
+        const data = await draftsRes.json()
+        setDrafts(data.drafts || [])
       }
     }
     load()
@@ -142,7 +155,8 @@ export default function Dashboard() {
           timezone,
           sendWindowStart,
           sendWindowEnd,
-          sendDays: sendDays.join(",")
+          sendDays: sendDays.join(","),
+          draftMode
         }),
       })
       if (!res.ok) throw new Error("Save failed")
@@ -186,6 +200,7 @@ export default function Dashboard() {
     { id: "targeting", icon: Target, label: "Lead Targeting" },
     { id: "brain", icon: BrainCircuit, label: "AI Brain" },
     { id: "schedule", icon: Calendar, label: "Schedule" },
+    { id: "drafts", icon: Inbox, label: "Draft Queue" },
   ]
 
   const kpis = [
@@ -502,7 +517,8 @@ export default function Dashboard() {
                                   timezone,
                                   sendWindowStart,
                                   sendWindowEnd,
-                                  sendDays: sendDays.join(",")
+                                  sendDays: sendDays.join(","),
+                                  draftMode
                                 })
                               })
                               
@@ -569,7 +585,8 @@ export default function Dashboard() {
                                       timezone,
                                       sendWindowStart,
                                       sendWindowEnd,
-                                      sendDays: sendDays.join(",")
+                                      sendDays: sendDays.join(","),
+                                      draftMode
                                     })
                                   })
                                 }
@@ -1006,6 +1023,26 @@ export default function Dashboard() {
                       </div>
                     </div>
 
+                    <div className="pt-4 border-t border-slate-100">
+                      <label className="flex items-start gap-4 cursor-pointer group">
+                        <div className={`relative w-12 h-6 mt-0.5 rounded-full transition-colors ${draftMode ? 'bg-indigo-600' : 'bg-slate-300'}`}>
+                          <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform shadow-sm ${draftMode ? 'translate-x-6' : 'translate-x-0'}`} />
+                        </div>
+                        <input
+                          type="checkbox"
+                          className="sr-only"
+                          checked={draftMode}
+                          onChange={(e) => setDraftMode(e.target.checked)}
+                        />
+                        <div>
+                          <div className="text-sm font-bold text-slate-800">Draft Mode (Human in the Loop)</div>
+                          <div className="text-xs text-slate-500 font-medium mt-0.5 max-w-lg leading-relaxed">
+                            When enabled, the AI will write emails but park them in the Draft Queue. You must manually approve them before they are sent. Highly recommended for new campaigns.
+                          </div>
+                        </div>
+                      </label>
+                    </div>
+
                     <div className="pt-4 flex items-center gap-4">
                       <button
                         type="submit"
@@ -1026,6 +1063,106 @@ export default function Dashboard() {
                       )}
                     </div>
                   </form>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ─── DRAFTS QUEUE ─── */}
+            {activeTab === "drafts" && (
+              <motion.div key="drafts" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
+                <div className="rounded-2xl overflow-hidden bg-white border border-slate-200 shadow-sm">
+                  <div className="bg-slate-50 border-b border-slate-200 px-8 py-5 flex items-center justify-between">
+                    <div>
+                      <h2 className="text-slate-900 font-extrabold text-lg flex items-center gap-2">
+                        <Inbox size={20} className="text-indigo-600" />
+                        Draft Queue
+                        <span className="ml-2 bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-0.5 rounded-full">{drafts.length} Pending</span>
+                      </h2>
+                      <p className="text-slate-500 text-sm mt-1">Review and approve emails generated by VaultReach before they hit prospects&apos; inboxes.</p>
+                    </div>
+                  </div>
+                  <div className="p-8">
+                    {!draftMode && drafts.length === 0 ? (
+                      <div className="text-center py-12">
+                        <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
+                          <Zap size={24} className="text-slate-400" />
+                        </div>
+                        <h3 className="text-slate-900 font-bold text-lg mb-1">Draft Mode is Off</h3>
+                        <p className="text-slate-500 text-sm">Emails are being sent entirely autonomously.</p>
+                        <button onClick={() => setActiveTab("schedule")} className="mt-4 text-indigo-600 font-bold text-sm hover:underline">Enable Draft Mode in Settings</button>
+                      </div>
+                    ) : drafts.length === 0 ? (
+                      <div className="text-center py-12">
+                        <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
+                          <CheckCircle size={24} className="text-emerald-500" />
+                        </div>
+                        <h3 className="text-slate-900 font-bold text-lg mb-1">Queue is empty</h3>
+                        <p className="text-slate-500 text-sm">You are all caught up! The AI is generating more drafts.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        {drafts.map(draft => (
+                          <div key={draft.id} className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                            <div className="bg-slate-50 border-b border-slate-200 px-5 py-3 flex justify-between items-center">
+                              <div>
+                                <div className="text-sm font-bold text-slate-900">{draft.leadFirstName} @ {draft.leadCompany}</div>
+                                <div className="text-xs text-slate-500">{draft.leadEmail}</div>
+                              </div>
+                              <div className="text-xs font-bold text-slate-400">Generated {new Date(draft.createdAt).toLocaleDateString()}</div>
+                            </div>
+                            <div className="p-5">
+                              <textarea
+                                value={draft.emailBody}
+                                onChange={(e) => setDrafts(drafts.map(d => d.id === draft.id ? { ...d, emailBody: e.target.value } : d))}
+                                rows={6}
+                                className="w-full text-sm text-slate-700 bg-white border border-slate-200 rounded-xl p-4 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 resize-none transition-all"
+                              />
+                              <div className="flex justify-end gap-3 mt-4">
+                                <button
+                                  disabled={isActioningDraft === draft.id}
+                                  onClick={async () => {
+                                    setIsActioningDraft(draft.id)
+                                    try {
+                                      const res = await fetch("/api/drafts", {
+                                        method: "PATCH",
+                                        headers: { "Content-Type": "application/json" },
+                                        body: JSON.stringify({ id: draft.id, status: "rejected", emailBody: draft.emailBody })
+                                      })
+                                      if (res.ok) setDrafts(drafts.filter(d => d.id !== draft.id))
+                                    } finally {
+                                      setIsActioningDraft(null)
+                                    }
+                                  }}
+                                  className="flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-rose-50 text-rose-600 font-bold text-xs rounded-lg transition-colors disabled:opacity-50 border border-rose-200"
+                                >
+                                  <XCircle size={14} /> Reject
+                                </button>
+                                <button
+                                  disabled={isActioningDraft === draft.id}
+                                  onClick={async () => {
+                                    setIsActioningDraft(draft.id)
+                                    try {
+                                      const res = await fetch("/api/drafts", {
+                                        method: "PATCH",
+                                        headers: { "Content-Type": "application/json" },
+                                        body: JSON.stringify({ id: draft.id, status: "approved", emailBody: draft.emailBody })
+                                      })
+                                      if (res.ok) setDrafts(drafts.filter(d => d.id !== draft.id))
+                                    } finally {
+                                      setIsActioningDraft(null)
+                                    }
+                                  }}
+                                  className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-lg transition-all shadow-sm disabled:opacity-50"
+                                >
+                                  <Check size={14} /> Approve & Queue for Sending
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </motion.div>
             )}

@@ -13,7 +13,8 @@ export async function GET() {
       ADD COLUMN IF NOT EXISTS "sendDays" TEXT NOT NULL DEFAULT '1,2,3,4,5';
     `)
     return NextResponse.json({ success: true, message: "Columns safely added!" })
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    return NextResponse.json({ success: false, error: message })
   }
 }

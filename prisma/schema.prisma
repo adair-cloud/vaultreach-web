@@ -80,11 +80,30 @@ model Campaign {
   sendDays              String    @default("1,2,3,4,5") // Mon-Fri
   // Worker heartbeat — updated by the Python worker each cycle
   lastPing              DateTime?
+  // Draft Mode
+  draftMode             Boolean   @default(true)
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
   analytics             Analytics[]
   replies               Reply[]
   leads                 Lead[]
+  drafts                Draft[]
+}
+
+model Draft {
+  id            String   @id @default(cuid())
+  campaignId    String
+  campaign      Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  
+  leadEmail     String
+  leadFirstName String?
+  leadCompany   String?
+  
+  emailBody     String   @db.Text
+  status        String   @default("pending") // pending, approved, rejected, sent
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model Analytics {
