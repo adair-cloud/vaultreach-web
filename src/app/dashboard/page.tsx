@@ -153,7 +153,7 @@ export default function Dashboard() {
           employeeRange,
           targetLocations,
           tone,
-                    rules: JSON.stringify({ presets: selectedRules, custom: customRules, coreOffer, calendlyUrl }),
+          rules: JSON.stringify({ presets: selectedRules, custom: customRules, coreOffer, calendlyUrl }),
           timezone,
           sendWindowStart,
           sendWindowEnd,
@@ -536,7 +536,7 @@ export default function Dashboard() {
                                   employeeRange,
                                   targetLocations,
                                   tone,
-                                            rules: JSON.stringify({ presets: selectedRules, custom: customRules, coreOffer, calendlyUrl }),
+                                  rules: JSON.stringify({ presets: selectedRules, custom: customRules, coreOffer, calendlyUrl }),
                                   timezone,
                                   sendWindowStart,
                                   sendWindowEnd,
@@ -604,7 +604,7 @@ export default function Dashboard() {
                                       employeeRange,
                                       targetLocations,
                                       tone,
-                                                rules: JSON.stringify({ presets: selectedRules, custom: customRules, coreOffer, calendlyUrl }),
+                                      rules: JSON.stringify({ presets: selectedRules, custom: customRules, coreOffer, calendlyUrl }),
                                       timezone,
                                       sendWindowStart,
                                       sendWindowEnd,
@@ -894,7 +894,7 @@ export default function Dashboard() {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-slate-800 mb-2">📅 Calendly Booking Link <span className="text-indigo-500">(optional)</span></label>
+                      <label className="block text-sm font-bold text-slate-800 mb-2">Calendly Booking Link <span className="text-indigo-500 font-medium">(optional)</span></label>
                       <input
                         type="url" value={calendlyUrl} onChange={e => setCalendlyUrl(e.target.value)}
                         placeholder="https://calendly.com/yourname/15min"
@@ -902,6 +902,7 @@ export default function Dashboard() {
                       />
                       <p className="text-xs text-slate-500 mt-1.5 font-medium">When a lead replies positively, the AI will include this link to book a meeting automatically.</p>
                     </div>
+                    <div>
                       <label className="block text-sm font-bold text-slate-800 mb-1">
                         Auto-Reply Guardrails
                       </label>
