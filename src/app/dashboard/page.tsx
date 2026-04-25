@@ -54,6 +54,7 @@ export default function Dashboard() {
   // Brain State
   const [tone, setTone] = useState("professional")
   const [coreOffer, setCoreOffer] = useState("")
+  const [calendlyUrl, setCalendlyUrl] = useState("")
   const [selectedRules, setSelectedRules] = useState<string[]>([])
   const [customRules, setCustomRules] = useState("")
   const [isSaving, setIsSaving] = useState(false)
@@ -107,6 +108,7 @@ export default function Dashboard() {
             setSelectedRules(parsedRules.presets || [])
             setCustomRules(parsedRules.custom || "")
             setCoreOffer(parsedRules.coreOffer || "")
+            setCalendlyUrl(parsedRules.calendlyUrl || "")
           } catch {
             setCustomRules(campaign.rules || "") // legacy fallback
           }
@@ -151,7 +153,7 @@ export default function Dashboard() {
           employeeRange,
           targetLocations,
           tone,
-          rules: JSON.stringify({ presets: selectedRules, custom: customRules, coreOffer }),
+                    rules: JSON.stringify({ presets: selectedRules, custom: customRules, coreOffer, calendlyUrl }),
           timezone,
           sendWindowStart,
           sendWindowEnd,
@@ -534,7 +536,7 @@ export default function Dashboard() {
                                   employeeRange,
                                   targetLocations,
                                   tone,
-                                  rules: JSON.stringify({ presets: selectedRules, custom: customRules, coreOffer }),
+                                            rules: JSON.stringify({ presets: selectedRules, custom: customRules, coreOffer, calendlyUrl }),
                                   timezone,
                                   sendWindowStart,
                                   sendWindowEnd,
@@ -602,7 +604,7 @@ export default function Dashboard() {
                                       employeeRange,
                                       targetLocations,
                                       tone,
-                                      rules: JSON.stringify({ presets: selectedRules, custom: customRules, coreOffer }),
+                                                rules: JSON.stringify({ presets: selectedRules, custom: customRules, coreOffer, calendlyUrl }),
                                       timezone,
                                       sendWindowStart,
                                       sendWindowEnd,
@@ -892,6 +894,14 @@ export default function Dashboard() {
                       />
                     </div>
                     <div>
+                      <label className="block text-sm font-bold text-slate-800 mb-2">📅 Calendly Booking Link <span className="text-indigo-500">(optional)</span></label>
+                      <input
+                        type="url" value={calendlyUrl} onChange={e => setCalendlyUrl(e.target.value)}
+                        placeholder="https://calendly.com/yourname/15min"
+                        className="w-full rounded-xl p-3.5 text-slate-900 bg-white placeholder-slate-400 font-medium outline-none transition-all border-2 border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 shadow-sm"
+                      />
+                      <p className="text-xs text-slate-500 mt-1.5 font-medium">When a lead replies positively, the AI will include this link to book a meeting automatically.</p>
+                    </div>
                       <label className="block text-sm font-bold text-slate-800 mb-1">
                         Auto-Reply Guardrails
                       </label>
