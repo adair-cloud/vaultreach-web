@@ -2,25 +2,13 @@ import { getServerSession } from "next-auth"
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { authOptions } from "@/lib/authOptions"
-import * as tls from "tls"
 
-async function verifySMTP(email: string, password: string): Promise<boolean> {
-  return new Promise((resolve) => {
-    const socket = tls.connect(465, "smtp.gmail.com", { servername: "smtp.gmail.com" }, () => {
-      socket.write(`EHLO vaultreach.ai\r\n`)
-      socket.once("data", () => {
-        const encoded = Buffer.from(`\0${email}\0${password}`).toString("base64")
-        socket.write(`AUTH PLAIN ${encoded}\r\n`)
-        socket.once("data", (chunk) => {
-          const response = chunk.toString()
-          socket.destroy()
-          resolve(response.startsWith("235")) // 235 = auth success
-        })
-      })
-    })
-    socket.on("error", () => resolve(false))
-    socket.setTimeout(8000, () => { socket.destroy(); resolve(false) })
-  })
+// Validate format only — live SMTP check is not possible from Vercel's serverless
+// environment (port 465 is blocked). The Railway worker performs the real auth
+// check on the first send cycle and will surface errors in its deploy logs.
+function isValidAppPasswordFormat(password: string): boolean {
+  // Google App Passwords are exactly 16 lowercase letters (no digits, no symbols)
+  return /^[a-z]{16}$/.test(password)
 }
 
 export async function POST(req: Request) {
@@ -34,13 +22,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "App password is required." }, { status: 400 })
   }
 
-  const cleanPassword = appPassword.replace(/\s/g, "")
+  const cleanPassword = appPassword.replace(/\s/g, "").toLowerCase()
 
-  // Validate the App Password with a real SMTP connection attempt
-  const valid = await verifySMTP(session.user.email, cleanPassword)
-  if (!valid) {
+  if (!isValidAppPasswordFormat(cleanPassword)) {
     return NextResponse.json(
-      { error: "SMTP connection failed. Check your App Password and ensure 2-Step Verification is enabled on your Google account." },
+      { error: "Invalid format. Google App Passwords are 16 lowercase letters (e.g. abcd efgh ijkl mnop). Spaces are ignored." },
       { status: 422 }
     )
   }
