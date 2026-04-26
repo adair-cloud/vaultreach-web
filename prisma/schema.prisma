@@ -81,7 +81,7 @@ model Campaign {
   // Worker heartbeat — updated by the Python worker each cycle
   lastPing              DateTime?
   // Draft Mode
-  draftMode             Boolean   @default(true)
+  draftMode             Boolean   @default(false)
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
   analytics             Analytics[]
