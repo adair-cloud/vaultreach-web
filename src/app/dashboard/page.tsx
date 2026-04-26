@@ -571,7 +571,22 @@ export default function Dashboard() {
                                   headers: { "Content-Type": "application/json" },
                                   body: JSON.stringify({ status: newStatus }),
                                 })
-                                if (res.ok) setCampaignStatus(newStatus)
+                                if (res.ok) {
+                                  setCampaignStatus(newStatus)
+                                } else if (newStatus === "active") {
+                                  const data = await res.json()
+                                  if (data.code === "SUBSCRIPTION_REQUIRED") {
+                                    const checkoutRes = await fetch("/api/stripe/checkout", { method: "POST" })
+                                    if (checkoutRes.ok) {
+                                      const { url } = await checkoutRes.json()
+                                      if (url) window.location.href = url
+                                    } else {
+                                      alert("A subscription is required to resume your campaign.")
+                                    }
+                                  } else {
+                                    alert(`Failed to update campaign: ${data.error || "Unknown error"}`)
+                                  }
+                                }
                               } finally {
                                 setIsTogglingStatus(false)
                               }
