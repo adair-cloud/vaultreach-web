@@ -352,21 +352,9 @@ export default function Dashboard() {
             {activeTab === "overview" && (
               <motion.div key="overview" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} className="space-y-6">
 
-                {/* ── ACTIVE CAMPAIGN WARNING: App Password missing ── */}
-                {hasIcp && !hasAppPassword && (
-                  <div className="flex items-center gap-3 rounded-2xl px-5 py-4 bg-amber-50 border border-amber-200 shadow-sm">
-                    <div className="w-8 h-8 rounded-full bg-amber-400 flex items-center justify-center shrink-0">
-                      <span className="text-white font-black text-sm">!</span>
-                    </div>
-                    <div className="flex-1">
-                      <div className="text-amber-900 font-bold text-sm">Action Required: Set Your App Password</div>
-                      <div className="text-amber-700 text-xs font-medium">Your campaign is active but no emails are being sent. Add your Google App Password in the setup steps below.</div>
-                    </div>
-                    <button onClick={() => setActiveTab("overview")} className="text-amber-700 text-xs font-bold border border-amber-300 bg-amber-100 px-3 py-1.5 rounded-xl hover:bg-amber-200 transition-colors">
-                      Fix Now
-                    </button>
-                  </div>
-                )}
+
+                {/* App Password warning removed — Gmail is connected automatically via OAuth */}
+
 
                 {/* ── COLD-START: Setup Checklist ── */}
                 {(!hasIcp || !hasAppPassword) ? (
@@ -389,70 +377,18 @@ export default function Dashboard() {
                         <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-full">Done</span>
                       </div>
                       
-                      {/* Step 1.5 - App Password */}
-                      {!hasAppPassword ? (
-                        <div className="flex flex-col gap-3 rounded-2xl p-5 bg-white border-2 border-indigo-500 shadow-sm">
-                          <div className="flex items-center gap-4">
-                            <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center shrink-0 shadow-sm">
-                              <Target size={16} className="text-white" />
-                            </div>
-                            <div className="flex-1">
-                              <div className="text-slate-900 font-bold text-sm">Add Google App Password</div>
-                              <div className="text-slate-500 text-xs font-medium">Allows the AI to read replies without triggering Google Security Audits.</div>
-                            </div>
-                          </div>
-                          <div className="ml-12 mt-1">
-                            <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer" className="text-indigo-600 text-xs font-bold hover:underline mb-2 block">
-                              Click here to generate a 16-character App Password &rarr;
-                            </a>
-                            <div className="flex gap-2">
-                              <input 
-                                type="password" 
-                                value={appPassword}
-                                onChange={e => setAppPassword(e.target.value)}
-                                placeholder="xxxx xxxx xxxx xxxx"
-                                className="flex-1 rounded-xl p-2.5 text-sm border-2 border-slate-200 focus:border-indigo-500 outline-none"
-                              />
-                              <button 
-                                onClick={async () => {
-                                  if (appPassword.replace(/\s/g, "").length < 16) return alert("Please enter a valid 16-character app password")
-                                  setIsSavingPassword(true)
-                                  try {
-                                    const res = await fetch("/api/campaigns/validate-smtp", {
-                                      method: "POST",
-                                      headers: { "Content-Type": "application/json" },
-                                      body: JSON.stringify({ appPassword })
-                                    })
-                                    if (!res.ok) {
-                                      const { error } = await res.json()
-                                      alert(`❌ ${error}`)
-                                      return
-                                    }
-                                    setHasAppPassword(true)
-                                  } finally {
-                                    setIsSavingPassword(false)
-                                  }
-                                }}
-                                disabled={isSavingPassword || !appPassword}
-                                className="bg-indigo-600 text-white font-bold text-xs px-4 py-2 rounded-xl disabled:opacity-50"
-                              >
-                                {isSavingPassword ? "Saving..." : "Save Password"}
-                              </button>
-                            </div>
-                          </div>
+                      {/* Step 1.5 — Gmail OAuth Connected (automatic, no App Password needed) */}
+                      <div className="flex items-center gap-4 rounded-2xl px-5 py-4 bg-emerald-50 border border-emerald-100">
+                        <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center shrink-0 shadow-sm">
+                          <CheckCircle size={16} className="text-white" />
                         </div>
-                      ) : (
-                        <div className="flex items-center gap-4 rounded-2xl px-5 py-4 bg-emerald-50 border border-emerald-100">
-                          <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center shrink-0 shadow-sm">
-                            <CheckCircle size={16} className="text-white" />
-                          </div>
-                          <div className="flex-1">
-                            <div className="text-emerald-900 font-bold text-sm">App Password Verified</div>
-                            <div className="text-emerald-600 text-xs font-medium">Inbox fully connected for auto-replies.</div>
-                          </div>
-                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-full">Done</span>
+                        <div className="flex-1">
+                          <div className="text-emerald-900 font-bold text-sm">Gmail Connected</div>
+                          <div className="text-emerald-600 text-xs font-medium">Inbox monitoring & sending active via secure OAuth — no App Password required.</div>
                         </div>
-                      )}
+                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-full">Done</span>
+                      </div>
+
 
                       {/* Step 2 */}
                       {hasIcp ? (
@@ -551,7 +487,23 @@ export default function Dashboard() {
                                 headers: { "Content-Type": "application/json" },
                                 body: JSON.stringify({ status: "active" }),
                               })
-                              if (res.ok) setCampaignStatus("active")
+                              if (res.ok) {
+                                setCampaignStatus("active")
+                              } else {
+                                const data = await res.json()
+                                if (data.code === "SUBSCRIPTION_REQUIRED") {
+                                  // Redirect to Stripe checkout — no dead-end for unsubscribed users
+                                  const checkoutRes = await fetch("/api/stripe/checkout", { method: "POST" })
+                                  if (checkoutRes.ok) {
+                                    const { url } = await checkoutRes.json()
+                                    if (url) window.location.href = url
+                                  } else {
+                                    alert("A subscription is required to launch your campaign. Please subscribe to continue.")
+                                  }
+                                } else {
+                                  alert(`Failed to activate: ${data.error || "Unknown error"}`)
+                                }
+                              }
                             } finally {
                               setIsTogglingStatus(false)
                             }
