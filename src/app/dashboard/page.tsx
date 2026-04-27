@@ -6,7 +6,8 @@ import { useSession, signOut } from "next-auth/react"
 import {
   BarChart3, Target, BrainCircuit, LogOut, Save, CheckCircle,
   Mail, Calendar, TrendingUp, Zap, Clock, MessageSquareText,
-  Bot, ChevronRight, Unplug, Check, Inbox, XCircle
+  Bot, ChevronRight, Unplug, Check, Inbox, XCircle,
+  Settings, KeyRound, Loader2, AlertCircle
 } from "lucide-react"
 
 const VaultLogo = () => (
@@ -60,9 +61,9 @@ export default function Dashboard() {
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState(false)
   const [hasIcp, setHasIcp] = useState(false)
-  const [appPassword, setAppPassword] = useState("")
-  const [hasAppPassword, setHasAppPassword] = useState(false)
-  const [isSavingPassword, setIsSavingPassword] = useState(false)
+  const [apolloApiKey, setApolloApiKey] = useState("")
+  const [hasApolloApiKey, setHasApolloApiKey] = useState(false)
+  const [isSavingSettings, setIsSavingSettings] = useState(false)
   const [campaignStatus, setCampaignStatus] = useState<"active" | "inactive">("inactive")
   const [isTogglingStatus, setIsTogglingStatus] = useState(false)
   const [lastPing, setLastPing] = useState<string | null>(null)
@@ -89,8 +90,9 @@ export default function Dashboard() {
     async function load() {
       const res = await fetch("/api/campaigns")
       if (res.ok) {
-        const { campaign, hasAppPassword: dbHasAppPassword } = await res.json()
-        setHasAppPassword(dbHasAppPassword)
+        const { campaign, hasAppPassword: dbHasAppPassword, apolloApiKey: dbApolloApiKey } = await res.json()
+        setHasApolloApiKey(!!dbApolloApiKey)
+        if (dbApolloApiKey) setApolloApiKey(dbApolloApiKey)
         if (campaign) {
           setUrl(campaign.websiteUrl ?? "")
           
@@ -174,6 +176,24 @@ export default function Dashboard() {
     }
   }
 
+  const handleSaveSettings = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSavingSettings(true)
+    try {
+      const res = await fetch("/api/campaigns", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ apolloApiKey }),
+      })
+      if (!res.ok) throw new Error("Save failed")
+      setHasApolloApiKey(!!apolloApiKey.trim())
+    } catch {
+      console.error("Failed to save settings")
+    } finally {
+      setIsSavingSettings(false)
+    }
+  }
+
   const userName = session?.user?.name?.split(" ")[0] ?? "there"
   const userInitial = (session?.user?.name ?? "U").charAt(0).toUpperCase()
   const pipelineValue = analytics.meetings * 3000
@@ -203,6 +223,7 @@ export default function Dashboard() {
     { id: "brain", icon: BrainCircuit, label: "AI Brain" },
     { id: "schedule", icon: Calendar, label: "Schedule" },
     { id: "drafts", icon: Inbox, label: "Draft Queue" },
+    { id: "settings", icon: Settings, label: "Settings" },
   ]
 
   const kpis = [
@@ -377,19 +398,6 @@ export default function Dashboard() {
                         <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-full">Done</span>
                       </div>
                       
-                      {/* Step 1.5 — Gmail OAuth Connected (automatic, no App Password needed) */}
-                      <div className="flex items-center gap-4 rounded-2xl px-5 py-4 bg-emerald-50 border border-emerald-100">
-                        <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center shrink-0 shadow-sm">
-                          <CheckCircle size={16} className="text-white" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="text-emerald-900 font-bold text-sm">Gmail Connected</div>
-                          <div className="text-emerald-600 text-xs font-medium">Inbox monitoring & sending active via secure OAuth — no App Password required.</div>
-                        </div>
-                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-full">Done</span>
-                      </div>
-
-
                       {/* Step 2 */}
                       {hasIcp ? (
                         <div className="flex items-center gap-4 rounded-2xl px-5 py-4 bg-emerald-50 border border-emerald-100">
@@ -409,8 +417,8 @@ export default function Dashboard() {
                           <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-full">Done</span>
                         </div>
                       ) : (
-                        <div className={`flex items-center gap-4 rounded-2xl px-5 py-4 ${hasAppPassword ? "bg-white border-2 border-indigo-500 shadow-sm" : "bg-slate-50 border border-slate-200 opacity-60"}`}>
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-sm ${hasAppPassword ? "bg-indigo-600" : "bg-slate-300"}`}>
+                        <div className="flex items-center gap-4 rounded-2xl px-5 py-4 bg-white border-2 border-indigo-500 shadow-sm">
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-sm bg-indigo-600">
                             <Target size={16} className="text-white" />
                           </div>
                           <div className="flex-1">
@@ -418,9 +426,8 @@ export default function Dashboard() {
                             <div className="text-slate-500 text-xs font-medium">Tell the AI who to target — takes 60 seconds.</div>
                           </div>
                           <button
-                            disabled={!hasAppPassword}
                             onClick={() => setActiveTab("targeting")}
-                            className="shrink-0 flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition-all shadow-sm disabled:opacity-50"
+                            className="shrink-0 flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition-all shadow-sm"
                           >
                             Set Up <ChevronRight size={12} />
                           </button>
@@ -1062,6 +1069,59 @@ export default function Dashboard() {
                       )}
                     </div>
                   </form>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ─── SETTINGS ─── */}
+            {activeTab === "settings" && (
+              <motion.div key="settings" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
+                <div className="rounded-2xl overflow-hidden bg-white border border-slate-200 shadow-sm">
+                  <div className="bg-slate-50 border-b border-slate-200 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                      <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                        <Settings className="text-indigo-600" size={20} /> Integration Settings
+                      </h2>
+                      <p className="text-sm text-slate-500 font-medium mt-1">Configure your third-party API keys to power the autonomous engine.</p>
+                    </div>
+                    <button
+                      onClick={handleSaveSettings}
+                      disabled={isSavingSettings}
+                      className="shrink-0 flex items-center gap-2 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-300 text-white font-bold text-sm px-6 py-2.5 rounded-xl transition-all shadow-sm"
+                    >
+                      {isSavingSettings ? <><Loader2 size={16} className="animate-spin" /> Saving...</> : <><Save size={16} /> Save Settings</>}
+                    </button>
+                  </div>
+                  <div className="p-6 md:p-8 space-y-8">
+                    <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-8">
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                          <KeyRound size={16} className="text-slate-500" /> Apollo.io API Key
+                        </h3>
+                        <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                          VaultReach uses Apollo to scrape hyper-targeted B2B leads. Provide your own API key to bypass platform rate limits and ensure maximum daily scraping throughput.
+                        </p>
+                      </div>
+                      <div className="space-y-4">
+                        <input
+                          type="password"
+                          value={apolloApiKey}
+                          onChange={(e) => setApolloApiKey(e.target.value)}
+                          placeholder="sk_..."
+                          className="w-full bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all font-mono"
+                        />
+                        {hasApolloApiKey ? (
+                          <div className="flex items-center gap-2 text-emerald-600 text-xs font-bold bg-emerald-50 px-3 py-2 rounded-lg inline-flex border border-emerald-100">
+                            <CheckCircle size={14} /> Key saved and active
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 text-amber-600 text-xs font-bold bg-amber-50 px-3 py-2 rounded-lg inline-flex border border-amber-100">
+                            <AlertCircle size={14} /> Missing required key
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </motion.div>
             )}

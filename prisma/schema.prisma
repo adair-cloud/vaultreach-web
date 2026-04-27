@@ -42,7 +42,7 @@ model User {
   email                 String?    @unique
   emailVerified         DateTime?
   image                 String?
-  appPassword           String?    @db.Text
+  apolloApiKey          String?    @db.Text
   
   stripeCustomerId      String?
   stripeSubscriptionId  String?
@@ -142,4 +142,11 @@ model Lead {
   status        LeadStatus @default(COLD)
   stepIndex     Int        @default(1)
   lastContacted DateTime?
+}
+
+model GlobalSuppression {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  reason    String   @default("unsubscribe")
+  createdAt DateTime @default(now())
 }

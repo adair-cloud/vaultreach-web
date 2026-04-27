@@ -11,15 +11,20 @@ export async function GET() {
 
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
-    include: { campaigns: { include: { analytics: true } } },
+    include: {
+      campaigns: { include: { analytics: true } },
+      accounts: true,
+    },
   })
 
   if (!user) return NextResponse.json({ campaign: null })
 
   const campaign = user.campaigns[0] ?? null
-  // Expose whether the user has set an app password (don't send the actual password for security, just a boolean)
-  const hasAppPassword = !!user.appPassword
-  return NextResponse.json({ campaign, hasAppPassword })
+  // Gmail is "connected" if the Google OAuth account has a refresh_token.
+  // This replaces the old App Password gate — no manual credential entry required.
+  const googleAccount = user.accounts.find((a) => a.provider.startsWith('google'))
+  const hasAppPassword = !!googleAccount?.refresh_token
+  return NextResponse.json({ campaign, hasAppPassword, apolloApiKey: user.apolloApiKey })
 }
 
 export async function POST(req: Request) {
@@ -83,11 +88,11 @@ export async function POST(req: Request) {
       },
     })
     
-    // Also update User if appPassword is provided (typically from the overview/setup tab)
-    if (body.appPassword !== undefined) {
+    // Update User API key if provided
+    if (body.apolloApiKey !== undefined) {
       await prisma.user.update({
         where: { id: user.id },
-        data: { appPassword: body.appPassword }
+        data: { apolloApiKey: body.apolloApiKey }
       })
     }
   } else {
