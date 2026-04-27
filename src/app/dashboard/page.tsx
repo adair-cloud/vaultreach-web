@@ -7,7 +7,7 @@ import {
   BarChart3, Target, BrainCircuit, LogOut, Save, CheckCircle,
   Mail, Calendar, TrendingUp, Zap, Clock, MessageSquareText,
   Bot, ChevronRight, Unplug, Check, Inbox, XCircle,
-  Settings, KeyRound, Loader2, AlertCircle
+  Settings, KeyRound, Loader2, AlertCircle, Users
 } from "lucide-react"
 
 const VaultLogo = () => (
@@ -64,6 +64,12 @@ export default function Dashboard() {
   const [apolloApiKey, setApolloApiKey] = useState("")
   const [hasApolloApiKey, setHasApolloApiKey] = useState(false)
   const [isSavingSettings, setIsSavingSettings] = useState(false)
+  const [hasOnboarded, setHasOnboarded] = useState(false)
+  const [showApolloHelp, setShowApolloHelp] = useState(false)
+  // Wizard state — must be at top level (React rules of hooks)
+  const [wizardStep, setWizardStep] = useState(0)
+  const [wizardApolloKey, setWizardApolloKey] = useState("")
+  const [wizardSaving, setWizardSaving] = useState(false)
   const [campaignStatus, setCampaignStatus] = useState<"active" | "inactive">("inactive")
   const [isTogglingStatus, setIsTogglingStatus] = useState(false)
   const [lastPing, setLastPing] = useState<string | null>(null)
@@ -90,9 +96,10 @@ export default function Dashboard() {
     async function load() {
       const res = await fetch("/api/campaigns")
       if (res.ok) {
-        const { campaign, hasAppPassword: dbHasAppPassword, apolloApiKey: dbApolloApiKey } = await res.json()
+        const { campaign, hasAppPassword: dbHasAppPassword, apolloApiKey: dbApolloApiKey, hasOnboarded: dbHasOnboarded } = await res.json()
         setHasApolloApiKey(!!dbApolloApiKey)
         if (dbApolloApiKey) setApolloApiKey(dbApolloApiKey)
+        setHasOnboarded(!!dbHasOnboarded)
         if (campaign) {
           setUrl(campaign.websiteUrl ?? "")
           
@@ -261,8 +268,198 @@ export default function Dashboard() {
     },
   ]
 
+  const dismissWizard = () => setHasOnboarded(true)
+  const saveKeyAndAdvance = async () => {
+    if (!wizardApolloKey.trim()) { setWizardStep(2); return }
+    setWizardSaving(true)
+    try {
+      await fetch("/api/campaigns", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ apolloApiKey: wizardApolloKey.trim() }),
+      })
+      setApolloApiKey(wizardApolloKey.trim())
+      setHasApolloApiKey(true)
+      setHasOnboarded(true)
+      setWizardStep(2)
+    } finally {
+      setWizardSaving(false)
+    }
+  }
+  const wizardSteps = ["Welcome", "Apollo Key", "Your ICP", "You're Ready"]
+
   return (
     <div className="flex h-screen overflow-hidden font-sans bg-slate-50 text-slate-900">
+
+      {/* ─────────────────────────────────────────────────────────────
+          ONBOARDING WIZARD — fires once on first login
+      ───────────────────────────────────────────────────────────── */}
+      {!hasOnboarded && (
+          <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden">
+              {/* Progress bar */}
+              <div className="h-1.5 bg-slate-100">
+                <div
+                  className="h-full bg-indigo-600 transition-all duration-500"
+                  style={{ width: `${((wizardStep + 1) / wizardSteps.length) * 100}%` }}
+                />
+              </div>
+              <div className="p-8">
+                {/* Step indicators */}
+                <div className="flex items-center gap-1 mb-6">
+                  {wizardSteps.map((s, i) => (
+                    <div key={s} className="flex items-center gap-1">
+                      <div className={`w-2 h-2 rounded-full ${i <= wizardStep ? 'bg-indigo-600' : 'bg-slate-200'}`} />
+                      {i < wizardSteps.length - 1 && <div className={`h-0.5 w-6 ${i < wizardStep ? 'bg-indigo-600' : 'bg-slate-200'}`} />}
+                    </div>
+                  ))}
+                  <span className="ml-2 text-xs text-slate-400 font-medium">Step {wizardStep + 1} of {wizardSteps.length}</span>
+                </div>
+
+                {/* Step 0: Welcome */}
+                {wizardStep === 0 && (
+                  <div>
+                    <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center mb-4 shadow-lg shadow-indigo-200">
+                      <Zap size={24} className="text-white" />
+                    </div>
+                    <h2 className="text-2xl font-black text-slate-900 mb-2">Welcome to VaultReach 👋</h2>
+                    <p className="text-slate-500 text-sm leading-relaxed mb-6">
+                      VaultReach is your autonomous AI sales rep. Once set up, it will find qualified leads, write personalized cold emails, and fill your pipeline — 24 hours a day, 7 days a week, without you lifting a finger.
+                    </p>
+                    <div className="space-y-3 mb-8">
+                      {[
+                        { icon: "🔍", text: "Finds 10–15 qualified B2B leads daily using your Apollo.io account" },
+                        { icon: "✍️", text: "Writes personalized cold emails using AI trained on your offer" },
+                        { icon: "📬", text: "Sends from your own Gmail — no shared infrastructure" },
+                        { icon: "💬", text: "Detects replies and auto-responds to keep conversations alive" },
+                      ].map(({ icon, text }) => (
+                        <div key={text} className="flex items-start gap-3 text-sm text-slate-700">
+                          <span className="text-lg leading-tight">{icon}</span>
+                          <span>{text}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => setWizardStep(1)}
+                        className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-black py-3.5 rounded-xl transition-all shadow-md hover:shadow-lg text-sm"
+                      >
+                        Let's get started →
+                      </button>
+                      <button onClick={dismissWizard} className="text-slate-400 hover:text-slate-600 text-xs font-medium px-4">Skip</button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 1: Apollo Key */}
+                {wizardStep === 1 && (
+                  <div>
+                    <div className="w-12 h-12 rounded-2xl bg-amber-500 flex items-center justify-center mb-4 shadow-lg shadow-amber-200">
+                      <KeyRound size={24} className="text-white" />
+                    </div>
+                    <h2 className="text-2xl font-black text-slate-900 mb-2">Connect Apollo.io</h2>
+                    <p className="text-slate-500 text-sm leading-relaxed mb-4">
+                      VaultReach uses your free Apollo.io account to find leads. You own your data, your credits never get shared, and it's completely free to start.
+                    </p>
+                    <div className="bg-slate-50 rounded-xl border border-slate-200 p-4 mb-4 text-xs text-slate-600 space-y-1.5">
+                      <p className="font-bold text-slate-800">Get your key in 60 seconds:</p>
+                      <ol className="list-decimal list-inside space-y-1">
+                        <li>Go to <a href="https://app.apollo.io" target="_blank" rel="noreferrer" className="text-indigo-600 font-bold underline">app.apollo.io</a> → sign up free (no card needed)</li>
+                        <li>Click your avatar → <strong>Settings</strong> → <strong>Integrations</strong> → <strong>API</strong></li>
+                        <li>Click <strong>Create New Key</strong>, name it "VaultReach", copy it below</li>
+                      </ol>
+                    </div>
+                    <input
+                      type="password"
+                      value={wizardApolloKey}
+                      onChange={e => setWizardApolloKey(e.target.value)}
+                      placeholder="Paste your Apollo API key here..."
+                      className="w-full bg-white border border-slate-200 text-slate-900 text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all font-mono mb-4"
+                    />
+                    <div className="flex gap-3">
+                      <button
+                        onClick={saveKeyAndAdvance}
+                        disabled={wizardSaving}
+                        className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white font-black py-3.5 rounded-xl transition-all shadow-md text-sm flex items-center justify-center gap-2"
+                      >
+                        {wizardSaving ? <><Loader2 size={16} className="animate-spin" /> Saving...</> : "Save & Continue →"}
+                      </button>
+                      <button onClick={() => setWizardStep(2)} className="text-slate-400 hover:text-slate-600 text-xs font-medium px-4">Skip for now</button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 2: ICP */}
+                {wizardStep === 2 && (
+                  <div>
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-500 flex items-center justify-center mb-4 shadow-lg shadow-emerald-200">
+                      <Users size={24} className="text-white" />
+                    </div>
+                    <h2 className="text-2xl font-black text-slate-900 mb-2">Define your ideal client</h2>
+                    <p className="text-slate-500 text-sm leading-relaxed mb-6">
+                      Your ICP (Ideal Customer Profile) tells VaultReach exactly who to target. Set it in the <strong>Lead Targeting</strong> tab — you can update it at any time.
+                    </p>
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-sm text-emerald-800 mb-6">
+                      <p className="font-bold mb-1">✓ You'll configure:</p>
+                      <ul className="space-y-1 text-xs">
+                        <li>• Job titles to target (e.g. CEO, Founder, VP of Sales)</li>
+                        <li>• Target industry (e.g. SaaS, E-commerce, Real Estate)</li>
+                        <li>• Company size and locations</li>
+                        <li>• Your website URL (used to personalize outreach)</li>
+                      </ul>
+                    </div>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => { setWizardStep(3) }}
+                        className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-black py-3.5 rounded-xl transition-all shadow-md text-sm"
+                      >
+                        Got it, continue →
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 3: Launch */}
+                {wizardStep === 3 && (
+                  <div>
+                    <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center mb-4 shadow-lg shadow-indigo-200">
+                      <Zap size={24} className="text-white" />
+                    </div>
+                    <h2 className="text-2xl font-black text-slate-900 mb-2">You're almost live! 🚀</h2>
+                    <p className="text-slate-500 text-sm leading-relaxed mb-6">
+                      Here's your quick checklist to launch your AI SDR:
+                    </p>
+                    <div className="space-y-3 mb-8">
+                      {[
+                        { done: hasApolloApiKey, label: "Apollo.io API key connected", tab: "settings" },
+                        { done: hasIcp, label: "Lead targeting configured", tab: "icp" },
+                        { done: false, label: "Hit 'Launch AI Sales Assistant' on your dashboard", tab: null },
+                      ].map(({ done, label, tab }) => (
+                        <div key={label} className={`flex items-center gap-3 rounded-xl px-4 py-3 ${done ? 'bg-emerald-50 border border-emerald-200' : 'bg-slate-50 border border-slate-200'}`}>
+                          <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${done ? 'bg-emerald-500' : 'bg-slate-200'}`}>
+                            {done ? <CheckCircle size={12} className="text-white" /> : <span className="w-2 h-2 rounded-full bg-slate-400" />}
+                          </div>
+                          <span className={`text-sm font-medium ${done ? 'text-emerald-800' : 'text-slate-600'}`}>{label}</span>
+                          {!done && tab && (
+                            <button onClick={() => { setActiveTab(tab); dismissWizard() }} className="ml-auto text-xs text-indigo-600 font-bold hover:underline">
+                              Go →
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      onClick={dismissWizard}
+                      className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-3.5 rounded-xl transition-all shadow-md text-sm"
+                    >
+                      Go to my dashboard
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
       {/* SIDEBAR */}
       <aside className="w-60 shrink-0 hidden md:flex flex-col justify-between border-r border-slate-200 bg-white">
@@ -1124,6 +1321,29 @@ export default function Dashboard() {
                             <AlertCircle size={14} /> Missing required key
                           </div>
                         )}
+                        {/* ── Collapsible Apollo Help ── */}
+                        <div className="mt-3">
+                          <button
+                            type="button"
+                            onClick={() => setShowApolloHelp(v => !v)}
+                            className="text-xs text-indigo-600 font-bold hover:underline flex items-center gap-1"
+                          >
+                            {showApolloHelp ? '▾' : '▸'} How do I get a free Apollo.io API key?
+                          </button>
+                          {showApolloHelp && (
+                            <div className="mt-3 bg-indigo-50 border border-indigo-100 rounded-xl p-4 text-xs text-slate-700 space-y-2 leading-relaxed">
+                              <p className="font-bold text-indigo-800">Get your free key in 60 seconds:</p>
+                              <ol className="list-decimal list-inside space-y-1.5">
+                                <li>Go to <a href="https://app.apollo.io" target="_blank" rel="noreferrer" className="text-indigo-600 font-bold underline">app.apollo.io</a> and create a free account (no credit card).</li>
+                                <li>Click your avatar in the top-right corner → <strong>Settings</strong>.</li>
+                                <li>In the left sidebar, click <strong>Integrations</strong> → <strong>API</strong>.</li>
+                                <li>Click <strong>Create New Key</strong>, give it a name (e.g. &quot;VaultReach&quot;), and copy it.</li>
+                                <li>Paste it into the field above and click <strong>Save Settings</strong>.</li>
+                              </ol>
+                              <p className="text-slate-500 pt-1">Free accounts get up to 50 email credits/month. Paid Apollo plans give 2,500+/month.</p>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>

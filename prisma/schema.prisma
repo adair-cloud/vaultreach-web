@@ -43,6 +43,7 @@ model User {
   emailVerified         DateTime?
   image                 String?
   apolloApiKey          String?    @db.Text
+  hasOnboarded          Boolean    @default(false)
   
   stripeCustomerId      String?
   stripeSubscriptionId  String?

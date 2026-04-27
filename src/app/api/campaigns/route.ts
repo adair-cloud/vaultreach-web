@@ -24,7 +24,12 @@ export async function GET() {
   // This replaces the old App Password gate — no manual credential entry required.
   const googleAccount = user.accounts.find((a) => a.provider.startsWith('google'))
   const hasAppPassword = !!googleAccount?.refresh_token
-  return NextResponse.json({ campaign, hasAppPassword, apolloApiKey: user.apolloApiKey })
+  return NextResponse.json({
+    campaign,
+    hasAppPassword,
+    apolloApiKey: user.apolloApiKey,
+    hasOnboarded: user.hasOnboarded,
+  })
 }
 
 export async function POST(req: Request) {
@@ -88,11 +93,15 @@ export async function POST(req: Request) {
       },
     })
     
-    // Update User API key if provided
+    // Update User API key if provided — also marks onboarding complete
     if (body.apolloApiKey !== undefined) {
       await prisma.user.update({
         where: { id: user.id },
-        data: { apolloApiKey: body.apolloApiKey }
+        data: {
+          apolloApiKey: body.apolloApiKey,
+          // Once the user saves their Apollo key, onboarding is considered complete
+          ...(body.apolloApiKey && { hasOnboarded: true }),
+        }
       })
     }
   } else {
