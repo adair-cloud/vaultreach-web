@@ -2,6 +2,7 @@ import GoogleProvider from "next-auth/providers/google"
 import { PrismaAdapter } from "@next-auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
 import { stripe } from "@/lib/stripe"
+import { sendWelcomeEmail } from "@/lib/email"
 import type { NextAuthOptions } from "next-auth"
 
 export const authOptions: NextAuthOptions = {
@@ -93,6 +94,27 @@ export const authOptions: NextAuthOptions = {
       }
 
       return token
+    },
+    async signIn({ user }) {
+      // Send a one-time welcome email on first login.
+      // Checks hasOnboarded so the email only fires once, even if the user
+      // signs in from multiple devices or browsers.
+      if (user?.email) {
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { email: user.email },
+            select: { hasOnboarded: true, name: true },
+          })
+          if (dbUser && !dbUser.hasOnboarded) {
+            const firstName = (dbUser.name ?? user.name ?? "").split(" ")[0]
+            // Fire-and-forget — never block sign-in
+            sendWelcomeEmail(user.email, firstName).catch(() => {})
+          }
+        } catch {
+          // Non-fatal
+        }
+      }
+      return true  // always allow sign-in
     },
     async session({ session, token }) {
       // @ts-expect-error: NextAuth dynamically injects user id but types omit it
