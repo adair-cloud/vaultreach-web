@@ -378,7 +378,7 @@ export default function Dashboard() {
 
 
                 {/* ── COLD-START: Setup Checklist ── */}
-                {(!hasIcp || !hasAppPassword) ? (
+                {(!hasIcp || !hasApolloApiKey) ? (
                   <div className="rounded-3xl p-8 bg-white border border-slate-200 shadow-sm">
                     <div className="mb-6">
                       <div className="text-indigo-600 font-bold text-sm mb-1">{getGreeting()}, {userName} 👋</div>
@@ -462,9 +462,15 @@ export default function Dashboard() {
                     </p>
                     {campaignStatus === "inactive" && analytics.emailsSent === 0 ? (
                       <div className="mt-6">
+                        {!hasApolloApiKey && (
+                          <div className="mb-3 flex items-center gap-2 text-amber-700 text-xs font-bold bg-amber-50 border border-amber-200 px-4 py-2.5 rounded-xl">
+                            <AlertCircle size={14} className="shrink-0" />
+                            Apollo API key required before launching. <button onClick={() => setActiveTab("settings")} className="underline hover:text-amber-900 ml-1">Add it in Settings →</button>
+                          </div>
+                        )}
                         <button
                           id="toggle-campaign-btn"
-                          disabled={isTogglingStatus}
+                          disabled={isTogglingStatus || !hasApolloApiKey || !hasIcp}
                           onClick={async () => {
                             setIsTogglingStatus(true)
                             try {
@@ -499,7 +505,6 @@ export default function Dashboard() {
                               } else {
                                 const data = await res.json()
                                 if (data.code === "SUBSCRIPTION_REQUIRED") {
-                                  // Redirect to Stripe checkout — no dead-end for unsubscribed users
                                   const checkoutRes = await fetch("/api/stripe/checkout", { method: "POST" })
                                   if (checkoutRes.ok) {
                                     const { url } = await checkoutRes.json()
@@ -515,13 +520,13 @@ export default function Dashboard() {
                               setIsTogglingStatus(false)
                             }
                           }}
-                          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm px-6 py-3.5 rounded-xl transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-50"
+                          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-black text-sm px-6 py-3.5 rounded-xl transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 disabled:shadow-none disabled:translate-y-0"
                         >
                           <Zap size={18} className={isTogglingStatus ? "animate-pulse" : ""} />
                           {isTogglingStatus ? "Launching Engine..." : "Launch AI Sales Assistant"}
                         </button>
                         <p className="text-slate-400 text-xs font-medium mt-3">
-                          Clicking this will activate your digital employee and begin live prospecting.
+                          {!hasApolloApiKey ? "Add your Apollo key in Settings to unlock launch." : !hasIcp ? "Configure Lead Targeting to unlock launch." : "Clicking this will activate your digital employee and begin live prospecting."}
                         </p>
                       </div>
                     ) : (
