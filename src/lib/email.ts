@@ -1,6 +1,13 @@
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+// Lazy-initialized to avoid build-time crash when env var isn't available during static analysis
+let _resend: Resend | null = null
+function getResend(): Resend {
+  if (!_resend) {
+    _resend = new Resend(process.env.RESEND_API_KEY)
+  }
+  return _resend
+}
 
 /**
  * Sends a one-time welcome email to a new VaultReach user.
@@ -12,7 +19,7 @@ export async function sendWelcomeEmail(toEmail: string, firstName: string) {
   const from = 'VaultReach <hello@vaultreach.ai>'
 
   try {
-    await resend.emails.send({
+    await getResend().emails.send({
       from,
       to: toEmail,
       subject: `You're in — here's how to launch your AI SDR`,
