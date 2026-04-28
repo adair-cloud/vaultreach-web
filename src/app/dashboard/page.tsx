@@ -96,7 +96,7 @@ export default function Dashboard() {
     async function load() {
       const res = await fetch("/api/campaigns")
       if (res.ok) {
-        const { campaign, hasAppPassword: dbHasAppPassword, apolloApiKey: dbApolloApiKey, hasOnboarded: dbHasOnboarded } = await res.json()
+        const { campaign, apolloApiKey: dbApolloApiKey, hasOnboarded: dbHasOnboarded } = await res.json()
         setHasApolloApiKey(!!dbApolloApiKey)
         if (dbApolloApiKey) setApolloApiKey(dbApolloApiKey)
         setHasOnboarded(!!dbHasOnboarded)
@@ -344,7 +344,7 @@ export default function Dashboard() {
                         onClick={() => setWizardStep(1)}
                         className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-black py-3.5 rounded-xl transition-all shadow-md hover:shadow-lg text-sm"
                       >
-                        Let's get started →
+                        Let&apos;s get started →
                       </button>
                       <button onClick={dismissWizard} className="text-slate-400 hover:text-slate-600 text-xs font-medium px-4">Skip</button>
                     </div>
@@ -359,14 +359,14 @@ export default function Dashboard() {
                     </div>
                     <h2 className="text-2xl font-black text-slate-900 mb-2">Connect Apollo.io</h2>
                     <p className="text-slate-500 text-sm leading-relaxed mb-4">
-                      VaultReach uses your free Apollo.io account to find leads. You own your data, your credits never get shared, and it's completely free to start.
+                      VaultReach uses your free Apollo.io account to find leads. You own your data, your credits never get shared, and it&apos;s completely free to start.
                     </p>
                     <div className="bg-slate-50 rounded-xl border border-slate-200 p-4 mb-4 text-xs text-slate-600 space-y-1.5">
                       <p className="font-bold text-slate-800">Get your key in 60 seconds:</p>
                       <ol className="list-decimal list-inside space-y-1">
                         <li>Go to <a href="https://app.apollo.io" target="_blank" rel="noreferrer" className="text-indigo-600 font-bold underline">app.apollo.io</a> → sign up free (no card needed)</li>
                         <li>Click your avatar → <strong>Settings</strong> → <strong>Integrations</strong> → <strong>API</strong></li>
-                        <li>Click <strong>Create New Key</strong>, name it "VaultReach", copy it below</li>
+                        <li>Click <strong>Create New Key</strong>, name it &quot;VaultReach&quot;, copy it below</li>
                       </ol>
                     </div>
                     <input
@@ -400,7 +400,7 @@ export default function Dashboard() {
                       Your ICP (Ideal Customer Profile) tells VaultReach exactly who to target. Set it in the <strong>Lead Targeting</strong> tab — you can update it at any time.
                     </p>
                     <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-sm text-emerald-800 mb-6">
-                      <p className="font-bold mb-1">✓ You'll configure:</p>
+                      <p className="font-bold mb-1">✓ You&apos;ll configure:</p>
                       <ul className="space-y-1 text-xs">
                         <li>• Job titles to target (e.g. CEO, Founder, VP of Sales)</li>
                         <li>• Target industry (e.g. SaaS, E-commerce, Real Estate)</li>
@@ -425,9 +425,9 @@ export default function Dashboard() {
                     <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center mb-4 shadow-lg shadow-indigo-200">
                       <Zap size={24} className="text-white" />
                     </div>
-                    <h2 className="text-2xl font-black text-slate-900 mb-2">You're almost live! 🚀</h2>
+                    <h2 className="text-2xl font-black text-slate-900 mb-2">You&apos;re almost live! 🚀</h2>
                     <p className="text-slate-500 text-sm leading-relaxed mb-6">
-                      Here's your quick checklist to launch your AI SDR:
+                      Here&apos;s your quick checklist to launch your AI SDR:
                     </p>
                     <div className="space-y-3 mb-8">
                       {[
