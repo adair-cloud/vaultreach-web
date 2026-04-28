@@ -9,9 +9,7 @@ const resend = new Resend(process.env.RESEND_API_KEY)
  */
 export async function sendWelcomeEmail(toEmail: string, firstName: string) {
   const name = firstName || 'there'
-  // FROM: use resend's shared domain until vaultreach.ai DNS is verified.
-  // Once verified, swap to: "VaultReach <hello@vaultreach.ai>"
-  const from = 'VaultReach <onboarding@resend.dev>'
+  const from = 'VaultReach <hello@vaultreach.ai>'
 
   try {
     await resend.emails.send({
