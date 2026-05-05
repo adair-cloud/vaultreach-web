@@ -63,7 +63,9 @@ export async function POST(req: Request) {
   // Gate: only users with an active Stripe subscription can create an active campaign.
   // Existing campaigns (updates) are always allowed through — the subscription was
   // validated at creation time. This prevents API-level paywall bypass.
-  if (!existing && !user.stripeSubscriptionId) {
+  // Owner account bypasses the subscription gate (mirrors the UI-level bypass in layout.tsx).
+  const isOwner = user.email === "adair@vaultreach.ai"
+  if (!existing && !user.stripeSubscriptionId && !isOwner) {
     return NextResponse.json(
       { error: "An active subscription is required to launch a campaign.", code: "SUBSCRIPTION_REQUIRED" },
       { status: 402 }
