@@ -81,11 +81,13 @@ export async function POST(req: Request) {
     campaign = await prisma.campaign.update({
       where: { id: existing.id },
       data: {
-        ...(websiteUrl      !== undefined && { websiteUrl }),
-        ...(targetIndustry  !== undefined && { targetIndustry }),
-        ...(targetTitles    !== undefined && { targetTitles }),
+        // ICP fields: guard against empty-string overwrites from uninitialized forms.
+        ...(websiteUrl      !== undefined && websiteUrl.trim()      !== '' && { websiteUrl }),
+        ...(targetIndustry  !== undefined && targetIndustry.trim()  !== '' && { targetIndustry }),
+        ...(targetTitles    !== undefined && targetTitles.trim()    !== '' && { targetTitles }),
+        ...(targetLocations !== undefined && targetLocations.trim() !== '' && { targetLocations }),
+        // Non-ICP fields: safe to overwrite (have sensible defaults)
         ...(employeeRange   !== undefined && { employeeRange }),
-        ...(targetLocations !== undefined && { targetLocations }),
         ...(tone            !== undefined && { tone }),
         ...(rules           !== undefined && { rules }),
         ...(timezone        !== undefined && { timezone }),
