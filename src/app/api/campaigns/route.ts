@@ -53,6 +53,7 @@ export async function POST(req: Request) {
     sendWindowEnd,
     sendDays,
     draftMode,
+    autoApproveHours,
   } = body
 
   const user = await prisma.user.findUnique({ where: { email: session.user.email } })
@@ -92,6 +93,7 @@ export async function POST(req: Request) {
         ...(sendWindowEnd   !== undefined && { sendWindowEnd }),
         ...(sendDays        !== undefined && { sendDays }),
         ...(draftMode       !== undefined && { draftMode }),
+        ...(autoApproveHours !== undefined && { autoApproveHours: autoApproveHours === null ? null : Number(autoApproveHours) }),
       },
     })
     
@@ -122,6 +124,7 @@ export async function POST(req: Request) {
         sendWindowEnd:   sendWindowEnd   ?? 17,
         sendDays:        sendDays        ?? "1,2,3,4,5",
         draftMode:       draftMode       ?? true,
+        autoApproveHours: autoApproveHours != null ? Number(autoApproveHours) : null,
         status:          "inactive",
       },
     })

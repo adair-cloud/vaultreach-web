@@ -331,7 +331,7 @@ export default function Dashboard() {
                         { icon: "🔍", text: "Finds 10–15 qualified B2B leads daily using your Apollo.io account" },
                         { icon: "✍️", text: "Writes personalized cold emails using AI trained on your offer" },
                         { icon: "📬", text: "Sends from your own Gmail — no shared infrastructure" },
-                        { icon: "💬", text: "Detects replies and auto-responds to keep conversations alive" },
+                        { icon: "📅", text: "Sends Day 3 and Day 7 follow-ups automatically — no manual effort required" },
                       ].map(({ icon, text }) => (
                         <div key={text} className="flex items-start gap-3 text-sm text-slate-700">
                           <span className="text-lg leading-tight">{icon}</span>
