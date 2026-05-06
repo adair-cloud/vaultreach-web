@@ -84,6 +84,7 @@ model Campaign {
   // Draft Mode
   draftMode             Boolean   @default(false)
   autoApproveHours      Int?      // null = never auto-approve; 24 = approve after 24hrs
+  dailySendLimit        Int       @default(20) // per-campaign daily cap; prevents multi-tenant quota sharing
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
   analytics             Analytics[]
