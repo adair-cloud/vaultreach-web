@@ -72,7 +72,7 @@ function SubscribeContent() {
                 7-DAY FREE TRIAL
               </div>
               <div className="text-4xl font-black mb-1">$0 today</div>
-              <div className="text-indigo-200 font-semibold text-sm">then $297/mo after 7 days · cancel anytime</div>
+              <div className="text-indigo-200 font-semibold text-sm">then $299/mo after 7 days · cancel anytime</div>
             </div>
           </div>
 
@@ -100,7 +100,7 @@ function SubscribeContent() {
               <div className="flex-1 text-center bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-r-xl px-3 py-2.5">
                 <div className="text-base">💳</div>
                 <div>Day 8+</div>
-                <div className="font-black text-indigo-600">$297/mo</div>
+                <div className="font-black text-indigo-600">$299/mo</div>
               </div>
             </div>
 

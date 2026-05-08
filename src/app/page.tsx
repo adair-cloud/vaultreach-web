@@ -55,7 +55,7 @@ export default function Home() {
 
           <h1 className="text-5xl md:text-7xl font-extrabold text-slate-900 tracking-tight leading-tight mb-6">
             Hire a relentless AI Sales Rep <br className="hidden md:block" />
-            <span className="text-indigo-600">for $297/MO.</span>
+            <span className="text-indigo-600">for $299/MO.</span>
           </h1>
 
           <p className="text-lg md:text-xl text-slate-600 max-w-2xl leading-relaxed mb-10">
@@ -189,7 +189,7 @@ export default function Home() {
         <h2 className="text-4xl font-extrabold text-white mb-6">Ready to hire your AI SDR?</h2>
         <p className="text-xl text-slate-400 max-w-2xl mx-auto mb-10">Stop wasting time searching for leads manually. Deploy VaultReach today.</p>
         <Link href="/login" className="inline-block bg-indigo-600 text-white px-10 py-5 rounded-xl font-bold text-lg hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-500/30">
-          Get Started — $297/mo
+          Get Started — $299/mo
         </Link>
       </section>
 

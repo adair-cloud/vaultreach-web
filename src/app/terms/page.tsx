@@ -48,7 +48,7 @@ export default function TermsPage() {
         <section className="mb-8">
           <h2 className="text-xl font-bold text-slate-800 mb-3">4. Subscriptions and Billing</h2>
           <p className="text-slate-600 leading-relaxed mb-3">
-            VaultReach is offered as a subscription service at $297 per month (or as otherwise displayed at the time of purchase), billed monthly. All payments are processed securely by Stripe.
+            VaultReach is offered as a subscription service at $299 per month (or as otherwise displayed at the time of purchase), billed monthly. All payments are processed securely by Stripe.
           </p>
           <ul className="list-disc pl-5 text-slate-600 space-y-2">
             <li>Subscriptions renew automatically on a monthly basis unless canceled.</li>
