@@ -81,6 +81,7 @@ export default function Dashboard() {
   
   // Draft Mode State
   const [draftMode, setDraftMode] = useState(true)
+  const [autoApproveHours, setAutoApproveHours] = useState<number | null>(null)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [drafts, setDrafts] = useState<any[]>([])
   const [isActioningDraft, setIsActioningDraft] = useState<string | null>(null)
@@ -137,6 +138,7 @@ export default function Dashboard() {
           if (campaign.sendWindowEnd !== undefined) setSendWindowEnd(campaign.sendWindowEnd)
           if (campaign.sendDays) setSendDays(campaign.sendDays.split(','))
           if (campaign.draftMode !== undefined) setDraftMode(campaign.draftMode)
+          if (campaign.autoApproveHours !== undefined) setAutoApproveHours(campaign.autoApproveHours ?? null)
         }
       }
       setIsLoaded(true)
