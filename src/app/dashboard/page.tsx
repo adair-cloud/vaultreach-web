@@ -61,6 +61,7 @@ export default function Dashboard() {
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState(false)
   const [hasIcp, setHasIcp] = useState(false)
+  const [isLoaded, setIsLoaded] = useState(false)
   const [apolloApiKey, setApolloApiKey] = useState("")
   const [hasApolloApiKey, setHasApolloApiKey] = useState(false)
   const [isSavingSettings, setIsSavingSettings] = useState(false)
@@ -121,7 +122,13 @@ export default function Dashboard() {
           } catch {
             setCustomRules(campaign.rules || "") // legacy fallback
           }
-          setHasIcp(Boolean(campaign.targetIndustry?.trim()))
+          // hasIcp = true if ANY targeting field is set, not just industry
+          setHasIcp(Boolean(
+            campaign.targetIndustry?.trim() ||
+            campaign.targetTitles?.trim() ||
+            campaign.websiteUrl?.trim() ||
+            campaign.targetLocations?.trim()
+          ))
           setLastPing(campaign.lastPing ?? null)
           setCampaignStatus(campaign.status === "active" ? "active" : "inactive")
           
@@ -132,6 +139,7 @@ export default function Dashboard() {
           if (campaign.draftMode !== undefined) setDraftMode(campaign.draftMode)
         }
       }
+      setIsLoaded(true)
       const analyticsRes = await fetch("/api/analytics")
       if (analyticsRes.ok) {
         const data = await analyticsRes.json()
@@ -171,7 +179,7 @@ export default function Dashboard() {
         }),
       })
       if (!res.ok) throw new Error("Save failed")
-      if (activeTab === "targeting" && selectedIndustries.length > 0) setHasIcp(true)
+      if (activeTab === "targeting") setHasIcp(true)
       setSaveSuccess(true)
       setSaveError(false)
       setTimeout(() => setSaveSuccess(false), 3000)
@@ -268,7 +276,15 @@ export default function Dashboard() {
     },
   ]
 
-  const dismissWizard = () => setHasOnboarded(true)
+  const dismissWizard = async () => {
+    setHasOnboarded(true)
+    // Persist to DB — wizard never reappears after first dismissal
+    fetch("/api/campaigns", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ hasOnboarded: true }),
+    }).catch(() => {})
+  }
   const saveKeyAndAdvance = async () => {
     if (!wizardApolloKey.trim()) { setWizardStep(2); return }
     setWizardSaving(true)
