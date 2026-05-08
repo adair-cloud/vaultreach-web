@@ -82,7 +82,7 @@ model Campaign {
   // Worker heartbeat — updated by the Python worker each cycle
   lastPing              DateTime?
   // Draft Mode
-  draftMode             Boolean   @default(false)
+  draftMode             Boolean   @default(true)
   autoApproveHours      Int?      // null = never auto-approve; 24 = approve after 24hrs
   dailySendLimit        Int       @default(20) // per-campaign daily cap; prevents multi-tenant quota sharing
   createdAt             DateTime  @default(now())
