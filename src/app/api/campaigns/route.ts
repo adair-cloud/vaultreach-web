@@ -81,11 +81,13 @@ export async function POST(req: Request) {
     campaign = await prisma.campaign.update({
       where: { id: existing.id },
       data: {
-        // ICP fields: guard against empty-string overwrites from uninitialized forms.
-        ...(websiteUrl      !== undefined && websiteUrl.trim()      !== '' && { websiteUrl }),
-        ...(targetIndustry  !== undefined && targetIndustry.trim()  !== '' && { targetIndustry }),
-        ...(targetTitles    !== undefined && targetTitles.trim()    !== '' && { targetTitles }),
-        ...(targetLocations !== undefined && targetLocations.trim() !== '' && { targetLocations }),
+        // ICP fields: guard against undefined (field not sent in request) but allow empty
+        // string so the user can intentionally clear a field. Previously the trim() !== ''
+        // guard meant a save with zero industries selected would silently skip the DB write.
+        ...(websiteUrl      !== undefined && { websiteUrl }),
+        ...(targetIndustry  !== undefined && { targetIndustry }),
+        ...(targetTitles    !== undefined && { targetTitles }),
+        ...(targetLocations !== undefined && { targetLocations }),
         // Non-ICP fields: safe to overwrite (have sensible defaults)
         ...(employeeRange   !== undefined && { employeeRange }),
         ...(tone            !== undefined && { tone }),

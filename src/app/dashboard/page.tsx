@@ -61,6 +61,7 @@ export default function Dashboard() {
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState(false)
   const [hasIcp, setHasIcp] = useState(false)
+  const [isLoaded, setIsLoaded] = useState(false)
   const [apolloApiKey, setApolloApiKey] = useState("")
   const [hasApolloApiKey, setHasApolloApiKey] = useState(false)
   const [isSavingSettings, setIsSavingSettings] = useState(false)
@@ -121,7 +122,15 @@ export default function Dashboard() {
           } catch {
             setCustomRules(campaign.rules || "") // legacy fallback
           }
-          setHasIcp(Boolean(campaign.targetIndustry?.trim()))
+          // hasIcp = true if ANY targeting field is configured, not just industry.
+          // Previously only checked targetIndustry, causing "not configured" even when
+          // the user had filled in website, titles, location, etc.
+          setHasIcp(Boolean(
+            campaign.targetIndustry?.trim() ||
+            campaign.targetTitles?.trim() ||
+            campaign.websiteUrl?.trim() ||
+            campaign.targetLocations?.trim()
+          ))
           setLastPing(campaign.lastPing ?? null)
           setCampaignStatus(campaign.status === "active" ? "active" : "inactive")
           
@@ -131,6 +140,7 @@ export default function Dashboard() {
           if (campaign.sendDays) setSendDays(campaign.sendDays.split(','))
           if (campaign.draftMode !== undefined) setDraftMode(campaign.draftMode)
         }
+        setIsLoaded(true)
       }
       const analyticsRes = await fetch("/api/analytics")
       if (analyticsRes.ok) {
@@ -171,7 +181,9 @@ export default function Dashboard() {
         }),
       })
       if (!res.ok) throw new Error("Save failed")
-      if (activeTab === "targeting" && selectedIndustries.length > 0) setHasIcp(true)
+      // Mark ICP configured on ANY successful save from the targeting tab,
+      // not just when industries are selected (user may not use that specific field).
+      if (activeTab === "targeting") setHasIcp(true)
       setSaveSuccess(true)
       setSaveError(false)
       setTimeout(() => setSaveSuccess(false), 3000)
@@ -1011,7 +1023,7 @@ export default function Dashboard() {
                       </div>
                     </div>
                     <div className="flex items-center gap-4 pt-4 border-t border-slate-100">
-                      <button type="submit" disabled={isSaving} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-xl transition-all shadow-md hover:shadow-lg disabled:opacity-60 text-sm">
+                      <button type="submit" disabled={isSaving || !isLoaded} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-xl transition-all shadow-md hover:shadow-lg disabled:opacity-60 text-sm">
                         {isSaving ? "Saving..." : <><Save size={16} /> Update Targeting</>}
                       </button>
                       {saveSuccess && (
