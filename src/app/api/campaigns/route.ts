@@ -1,14 +1,3 @@
-import { getServerSession } from "next-auth"
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-
-
-  const body = await req.json()
-  const {
-    websiteUrl,
-    targetIndustry,
-    targetTitles,
-    employeeRange,
     targetLocations,
     // AI Brain fields — now stored in their own dedicated columns
     tone,
@@ -23,11 +12,17 @@ import { getServerSession } from "next-auth"
   } = body
 
 
+
+
   const user = await prisma.user.findUnique({ where: { email: session.user.email } })
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 })
 
 
+
+
   const existing = await prisma.campaign.findFirst({ where: { userId: user.id } })
+
+
 
 
   // Gate: only users with an active Stripe subscription can create an active campaign.
@@ -41,6 +36,8 @@ import { getServerSession } from "next-auth"
       { status: 402 }
     )
   }
+
+
 
 
   let campaign
@@ -71,13 +68,15 @@ import { getServerSession } from "next-auth"
       },
     })
     
-    // Update User API key if provided — also marks onboarding complete
-    if (body.apolloApiKey !== undefined) {
+    // Update User API key or onboarding status
+    if (body.apolloApiKey !== undefined || hasOnboarded !== undefined) {
       await prisma.user.update({
         where: { id: user.id },
         data: {
-          apolloApiKey: body.apolloApiKey,
-          // Once the user saves their Apollo key, onboarding is considered complete
-          ...(body.apolloApiKey && { hasOnboarded: true }),
+          ...(body.apolloApiKey !== undefined && { apolloApiKey: body.apolloApiKey }),
+          ...(hasOnboarded !== undefined ? { hasOnboarded } : (body.apolloApiKey && { hasOnboarded: true })),
         }
       })
+    }
+  return NextResponse.json(campaign)
+  }
