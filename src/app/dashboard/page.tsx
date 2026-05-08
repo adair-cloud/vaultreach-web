@@ -159,6 +159,7 @@ export default function Dashboard() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!isLoaded) return   // guard: don't overwrite DB before data has hydrated
     setIsSaving(true)
     try {
       const res = await fetch("/api/campaigns", {
