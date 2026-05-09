@@ -7,7 +7,7 @@ import {
   BarChart3, Target, BrainCircuit, LogOut, Save, CheckCircle,
   Mail, Calendar, TrendingUp, Zap, Clock, MessageSquareText,
   Bot, ChevronRight, Unplug, Check, Inbox, XCircle,
-  Settings, KeyRound, Loader2, AlertCircle, Users
+  Settings, KeyRound, Loader2, AlertCircle, Users, Download, X as XIcon
 } from "lucide-react"
 
 const VaultLogo = () => (
@@ -85,6 +85,19 @@ export default function Dashboard() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [drafts, setDrafts] = useState<any[]>([])
   const [isActioningDraft, setIsActioningDraft] = useState<string | null>(null)
+  const [draftFilter, setDraftFilter] = useState<"all" | "initial" | "day3" | "day7">("all")
+  const [isBulkApproving, setIsBulkApproving] = useState(false)
+
+  // #8 — Worker activity log
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [lastRunSummary, setLastRunSummary] = useState<any | null>(null)
+
+  // #3 — Exclusion list
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [excludedLeads, setExcludedLeads] = useState<any[]>([])
+  const [newExcludeEmail, setNewExcludeEmail] = useState("")
+  const [newExcludeReason, setNewExcludeReason] = useState("manual")
+  const [isAddingExclusion, setIsAddingExclusion] = useState(false)
 
   const [analytics, setAnalytics] = useState<{
     emailsSent: number
@@ -139,6 +152,7 @@ export default function Dashboard() {
           if (campaign.sendDays) setSendDays(campaign.sendDays.split(','))
           if (campaign.draftMode !== undefined) setDraftMode(campaign.draftMode)
           if (campaign.autoApproveHours !== undefined) setAutoApproveHours(campaign.autoApproveHours ?? null)
+          if (campaign.lastRunSummary) setLastRunSummary(campaign.lastRunSummary)
         }
       }
       setIsLoaded(true)
@@ -147,11 +161,17 @@ export default function Dashboard() {
         const data = await analyticsRes.json()
         setAnalytics(data)
       }
-      
+
       const draftsRes = await fetch("/api/drafts")
       if (draftsRes.ok) {
         const data = await draftsRes.json()
         setDrafts(data.drafts || [])
+      }
+
+      const excludeRes = await fetch("/api/campaigns/exclude")
+      if (excludeRes.ok) {
+        const data = await excludeRes.json()
+        setExcludedLeads(data.excludedLeads || [])
       }
     }
     load()
@@ -949,6 +969,41 @@ export default function Dashboard() {
                   ))}
                 </div>
 
+                {/* ── #8 Worker Activity Log — show when lastRunSummary exists ── */}
+                {lastRunSummary && (
+                  <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
+                    <div className="bg-slate-50 border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                        <h3 className="text-slate-900 font-bold text-sm">Last Worker Run</h3>
+                      </div>
+                      <span className="text-[10px] font-bold text-slate-400">
+                        {lastRunSummary.runAt ? new Date(lastRunSummary.runAt).toLocaleString() : ""}
+                      </span>
+                    </div>
+                    <div className="px-6 py-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
+                      {[
+                        { label: "Leads Evaluated", value: lastRunSummary.leadsEvaluated ?? 0, color: "text-slate-900" },
+                        { label: "Already Contacted", value: lastRunSummary.leadsSkipped ?? 0, color: "text-slate-400" },
+                        { label: "Drafts Created", value: lastRunSummary.draftsCreated ?? 0, color: "text-indigo-600" },
+                        { label: "Errors", value: lastRunSummary.errors?.length ?? 0, color: lastRunSummary.errors?.length ? "text-rose-600" : "text-emerald-600" },
+                      ].map(stat => (
+                        <div key={stat.label} className="text-center">
+                          <div className={`text-2xl font-black ${stat.color}`}>{stat.value}</div>
+                          <div className="text-xs text-slate-400 font-medium mt-0.5">{stat.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                    {lastRunSummary.errors?.length > 0 && (
+                      <div className="px-6 pb-4">
+                        <div className="bg-rose-50 border border-rose-200 rounded-xl px-4 py-3 text-xs text-rose-700 font-medium">
+                          <span className="font-bold">Worker errors: </span>{lastRunSummary.errors.join(" • ")}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Time Saved Banner */}
                 <div className="rounded-2xl px-6 py-5 flex items-center justify-between bg-white border border-slate-200 shadow-sm">
                   <div className="flex items-center gap-4">
@@ -1540,100 +1595,300 @@ export default function Dashboard() {
                       </div>
                     </div>
 
+                    {/* ── #3 Exclusion List ── */}
+                    <div className="border-t border-slate-100 pt-8">
+                      <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-8">
+                        <div>
+                          <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                            <XIcon size={16} className="text-slate-500" /> Excluded Leads
+                          </h3>
+                          <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                            Block specific email addresses from all future outreach on this campaign.
+                          </p>
+                        </div>
+                        <div className="space-y-4">
+                          <div className="flex gap-2 flex-wrap">
+                            <input
+                              type="email"
+                              placeholder="email@company.com"
+                              value={newExcludeEmail}
+                              onChange={(e) => setNewExcludeEmail(e.target.value)}
+                              className="flex-1 min-w-[180px] border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                            />
+                            <select
+                              value={newExcludeReason}
+                              onChange={(e) => setNewExcludeReason(e.target.value)}
+                              className="border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-indigo-500 bg-white"
+                            >
+                              <option value="manual">Manual</option>
+                              <option value="replied">Replied</option>
+                              <option value="not_interested">Not Interested</option>
+                              <option value="wrong_person">Wrong Person</option>
+                              <option value="competitor">Competitor</option>
+                            </select>
+                            <button
+                              disabled={isAddingExclusion || !newExcludeEmail.trim()}
+                              onClick={async () => {
+                                if (!newExcludeEmail.trim()) return
+                                setIsAddingExclusion(true)
+                                try {
+                                  const res = await fetch("/api/campaigns/exclude", {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ email: newExcludeEmail.trim(), reason: newExcludeReason }),
+                                  })
+                                  if (res.ok) {
+                                    setExcludedLeads(prev => [...prev, { id: Date.now().toString(), email: newExcludeEmail.trim().toLowerCase(), reason: newExcludeReason, excludedAt: new Date().toISOString() }])
+                                    setNewExcludeEmail("")
+                                  }
+                                } finally { setIsAddingExclusion(false) }
+                              }}
+                              className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm rounded-xl transition-all disabled:opacity-40"
+                            >
+                              {isAddingExclusion ? <Loader2 size={14} className="animate-spin" /> : "Block"}
+                            </button>
+                          </div>
+                          {excludedLeads.length === 0 ? (
+                            <div className="text-center py-6 text-slate-400 text-sm border border-dashed border-slate-200 rounded-xl">
+                              No leads excluded yet.
+                            </div>
+                          ) : (
+                            <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden">
+                              {excludedLeads.map(lead => (
+                                <div key={lead.id} className="flex items-center justify-between px-4 py-3 bg-white hover:bg-slate-50 transition-colors">
+                                  <div>
+                                    <div className="text-sm font-medium text-slate-900">{lead.email}</div>
+                                    <div className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">{lead.reason ?? "manual"}</div>
+                                  </div>
+                                  <button
+                                    onClick={async () => {
+                                      await fetch("/api/campaigns/exclude", {
+                                        method: "DELETE",
+                                        headers: { "Content-Type": "application/json" },
+                                        body: JSON.stringify({ email: lead.email }),
+                                      })
+                                      setExcludedLeads(prev => prev.filter(l => l.id !== lead.id))
+                                    }}
+                                    className="text-slate-300 hover:text-rose-500 transition-colors p-1.5 rounded-lg hover:bg-rose-50"
+                                  >
+                                    <XIcon size={14} />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          <div className="text-xs text-slate-400">{excludedLeads.length} lead{excludedLeads.length !== 1 ? "s" : ""} excluded.</div>
+                        </div>
+                      </div>
+                    </div>
+
                   </div>
                 </div>
               </motion.div>
             )}
 
-            {/* ─── DRAFTS QUEUE ─── */}
+            {/* ─── DRAFT QUEUE ─── */}
             {activeTab === "drafts" && (
               <motion.div key="drafts" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}>
                 <div className="rounded-2xl overflow-hidden bg-white border border-slate-200 shadow-sm">
-                  <div className="bg-slate-50 border-b border-slate-200 px-8 py-5 flex items-center justify-between">
-                    <div>
-                      <h2 className="text-slate-900 font-extrabold text-lg flex items-center gap-2">
-                        <Inbox size={20} className="text-indigo-600" />
-                        Draft Queue
-                        <span className="ml-2 bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-0.5 rounded-full">{drafts.length} Pending</span>
-                      </h2>
-                      <p className="text-slate-500 text-sm mt-1">Review and approve emails generated by VaultReach before they hit prospects&apos; inboxes.</p>
+
+                  {/* Header */}
+                  <div className="bg-slate-50 border-b border-slate-200 px-8 py-5">
+                    <div className="flex items-center justify-between gap-4 flex-wrap">
+                      <div>
+                        <h2 className="text-slate-900 font-extrabold text-lg flex items-center gap-2">
+                          <Inbox size={20} className="text-indigo-600" />
+                          Draft Queue
+                          {drafts.length > 0 && (
+                            <span className="ml-2 bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-0.5 rounded-full">{drafts.length} Pending</span>
+                          )}
+                        </h2>
+                        <p className="text-slate-500 text-sm mt-1">Review, edit, and approve emails before they hit prospects&apos; inboxes.</p>
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {/* Export CSV */}
+                        <a
+                          href="/api/campaigns/export?format=csv"
+                          download
+                          className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 font-bold text-xs rounded-lg transition-colors"
+                        >
+                          <Download size={13} /> Export CSV
+                        </a>
+                        {/* Bulk Approve All */}
+                        {drafts.length > 0 && (
+                          <button
+                            disabled={isBulkApproving}
+                            onClick={async () => {
+                              setIsBulkApproving(true)
+                              try {
+                                const res = await fetch("/api/drafts/bulk-approve", {
+                                  method: "POST",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({ ids: drafts.map(d => d.id) }),
+                                })
+                                if (res.ok) setDrafts([])
+                              } finally { setIsBulkApproving(false) }
+                            }}
+                            className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-lg transition-all shadow-sm disabled:opacity-50"
+                          >
+                            <Check size={13} /> Approve All ({drafts.length})
+                          </button>
+                        )}
+                      </div>
                     </div>
+
+                    {/* Filter tabs */}
+                    {drafts.length > 0 && (
+                      <div className="flex gap-1 mt-4">
+                        {([
+                          { key: "all",     label: "All" },
+                          { key: "initial", label: "Initial Emails" },
+                          { key: "day3",    label: "Day 3" },
+                          { key: "day7",    label: "Day 7" },
+                        ] as const).map(tab => (
+                          <button
+                            key={tab.key}
+                            onClick={() => setDraftFilter(tab.key)}
+                            className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-all ${
+                              draftFilter === tab.key
+                                ? "bg-indigo-600 text-white shadow-sm"
+                                : "bg-white border border-slate-200 text-slate-500 hover:border-slate-300"
+                            }`}
+                          >{tab.label}</button>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <div className="p-8">
+
+                  {/* Body */}
+                  <div className="p-6">
                     {!draftMode && drafts.length === 0 ? (
                       <div className="text-center py-12">
                         <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
                           <Zap size={24} className="text-slate-400" />
                         </div>
-                        <h3 className="text-slate-900 font-bold text-lg mb-1">Draft Mode is Off</h3>
-                        <p className="text-slate-500 text-sm">Emails are being sent entirely autonomously.</p>
-                        <button onClick={() => setActiveTab("schedule")} className="mt-4 text-indigo-600 font-bold text-sm hover:underline">Enable Draft Mode in Settings</button>
+                        <h3 className="text-slate-900 font-bold text-lg mb-1">Auto-Send is On</h3>
+                        <p className="text-slate-500 text-sm">Emails are sending autonomously — nothing to review.</p>
+                        <button onClick={() => setActiveTab("settings")} className="mt-4 text-indigo-600 font-bold text-sm hover:underline">Change in Settings</button>
                       </div>
                     ) : drafts.length === 0 ? (
                       <div className="text-center py-12">
                         <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
                           <CheckCircle size={24} className="text-emerald-500" />
                         </div>
-                        <h3 className="text-slate-900 font-bold text-lg mb-1">Queue is empty</h3>
-                        <p className="text-slate-500 text-sm">You are all caught up! The AI is generating more drafts.</p>
+                        <h3 className="text-slate-900 font-bold text-lg mb-1">Queue is clear</h3>
+                        <p className="text-slate-500 text-sm">All caught up — the AI is generating more drafts in the background.</p>
                       </div>
                     ) : (
-                      <div className="space-y-6">
-                        {drafts.map(draft => (
-                          <div key={draft.id} className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-                            <div className="bg-slate-50 border-b border-slate-200 px-5 py-3 flex justify-between items-center">
+                      <div className="space-y-4">
+                        {drafts
+                          .filter(d => {
+                            if (draftFilter === "initial") return (d.followUpNum ?? 0) === 0
+                            if (draftFilter === "day3")    return (d.followUpNum ?? 0) === 1
+                            if (draftFilter === "day7")    return (d.followUpNum ?? 0) === 2
+                            return true
+                          })
+                          .map(draft => (
+                          <div key={draft.id} className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:border-indigo-200 transition-colors">
+                            {/* Card header */}
+                            <div className="bg-slate-50 border-b border-slate-200 px-5 py-3 flex justify-between items-start">
                               <div>
-                                <div className="text-sm font-bold text-slate-900">{draft.leadFirstName} @ {draft.leadCompany}</div>
-                                <div className="text-xs text-slate-500">{draft.leadEmail}</div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-bold text-slate-900">
+                                    {draft.leadFirstName ?? "Lead"} {draft.leadTitle ? <span className="text-slate-500 font-medium">· {draft.leadTitle}</span> : null}
+                                  </span>
+                                  {(draft.followUpNum ?? 0) > 0 && (
+                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                                      draft.followUpNum === 1
+                                        ? "bg-amber-50 text-amber-700 border-amber-200"
+                                        : "bg-rose-50 text-rose-700 border-rose-200"
+                                    }`}>
+                                      {draft.followUpNum === 1 ? "Day 3 Follow-up" : "Day 7 Follow-up"}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-xs text-slate-500 mt-0.5">{draft.leadCompany ?? ""} · {draft.leadEmail}</div>
                               </div>
-                              <div className="text-xs font-bold text-slate-400">Generated {new Date(draft.createdAt).toLocaleDateString()}</div>
+                              <span className="text-[10px] text-slate-400 font-bold">{new Date(draft.createdAt).toLocaleDateString()}</span>
                             </div>
-                            <div className="p-5">
+
+                            {/* Subject line */}
+                            {draft.emailSubject !== undefined && (
+                              <div className="px-5 pt-4">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Subject</label>
+                                <input
+                                  value={draft.emailSubject ?? ""}
+                                  onChange={(e) => setDrafts(drafts.map(d => d.id === draft.id ? { ...d, emailSubject: e.target.value } : d))}
+                                  className="w-full mt-1 text-sm font-medium text-slate-800 bg-white border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                                  placeholder="Email subject line"
+                                />
+                              </div>
+                            )}
+
+                            {/* Body */}
+                            <div className="px-5 pt-3 pb-4">
+                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Body</label>
                               <textarea
                                 value={draft.emailBody}
                                 onChange={(e) => setDrafts(drafts.map(d => d.id === draft.id ? { ...d, emailBody: e.target.value } : d))}
                                 rows={6}
-                                className="w-full text-sm text-slate-700 bg-white border border-slate-200 rounded-xl p-4 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 resize-none transition-all"
+                                className="w-full mt-1 text-sm text-slate-700 bg-white border border-slate-200 rounded-xl p-4 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 resize-none transition-all"
                               />
-                              <div className="flex justify-end gap-3 mt-4">
+
+                              {/* Actions */}
+                              <div className="flex justify-between items-center mt-3">
                                 <button
-                                  disabled={isActioningDraft === draft.id}
-                                  onClick={async () => {
-                                    setIsActioningDraft(draft.id)
-                                    try {
-                                      const res = await fetch("/api/drafts", {
-                                        method: "PATCH",
+                                  onClick={() => {
+                                    const email = draft.leadEmail
+                                    if (confirm(`Block ${email} from all future outreach?`)) {
+                                      fetch("/api/campaigns/exclude", {
+                                        method: "POST",
                                         headers: { "Content-Type": "application/json" },
-                                        body: JSON.stringify({ id: draft.id, status: "rejected", emailBody: draft.emailBody })
+                                        body: JSON.stringify({ email, reason: "manual" }),
                                       })
-                                      if (res.ok) setDrafts(drafts.filter(d => d.id !== draft.id))
-                                    } finally {
-                                      setIsActioningDraft(null)
+                                      setExcludedLeads(prev => [...prev, { id: Date.now().toString(), email, reason: "manual", excludedAt: new Date().toISOString() }])
                                     }
                                   }}
-                                  className="flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-rose-50 text-rose-600 font-bold text-xs rounded-lg transition-colors disabled:opacity-50 border border-rose-200"
+                                  className="text-[10px] text-slate-400 hover:text-rose-600 font-bold transition-colors"
                                 >
-                                  <XCircle size={14} /> Reject
+                                  Block this lead
                                 </button>
-                                <button
-                                  disabled={isActioningDraft === draft.id}
-                                  onClick={async () => {
-                                    setIsActioningDraft(draft.id)
-                                    try {
-                                      const res = await fetch("/api/drafts", {
-                                        method: "PATCH",
-                                        headers: { "Content-Type": "application/json" },
-                                        body: JSON.stringify({ id: draft.id, status: "approved", emailBody: draft.emailBody })
-                                      })
-                                      if (res.ok) setDrafts(drafts.filter(d => d.id !== draft.id))
-                                    } finally {
-                                      setIsActioningDraft(null)
-                                    }
-                                  }}
-                                  className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-lg transition-all shadow-sm disabled:opacity-50"
-                                >
-                                  <Check size={14} /> Approve & Queue for Sending
-                                </button>
+                                <div className="flex gap-2">
+                                  <button
+                                    disabled={isActioningDraft === draft.id}
+                                    onClick={async () => {
+                                      setIsActioningDraft(draft.id)
+                                      try {
+                                        const res = await fetch("/api/drafts", {
+                                          method: "PATCH",
+                                          headers: { "Content-Type": "application/json" },
+                                          body: JSON.stringify({ id: draft.id, status: "rejected", emailBody: draft.emailBody }),
+                                        })
+                                        if (res.ok) setDrafts(drafts.filter(d => d.id !== draft.id))
+                                      } finally { setIsActioningDraft(null) }
+                                    }}
+                                    className="flex items-center gap-1.5 px-4 py-2 bg-white hover:bg-rose-50 text-rose-600 font-bold text-xs rounded-lg border border-rose-200 transition-colors disabled:opacity-50"
+                                  >
+                                    <XCircle size={13} /> Reject
+                                  </button>
+                                  <button
+                                    disabled={isActioningDraft === draft.id}
+                                    onClick={async () => {
+                                      setIsActioningDraft(draft.id)
+                                      try {
+                                        const res = await fetch("/api/drafts", {
+                                          method: "PATCH",
+                                          headers: { "Content-Type": "application/json" },
+                                          body: JSON.stringify({ id: draft.id, status: "approved", emailBody: draft.emailBody, emailSubject: draft.emailSubject }),
+                                        })
+                                        if (res.ok) setDrafts(drafts.filter(d => d.id !== draft.id))
+                                      } finally { setIsActioningDraft(null) }
+                                    }}
+                                    className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-lg shadow-sm transition-all disabled:opacity-50"
+                                  >
+                                    <Check size={13} /> Approve
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           </div>

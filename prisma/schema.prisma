@@ -81,16 +81,21 @@ model Campaign {
   sendDays              String    @default("1,2,3,4,5") // Mon-Fri
   // Worker heartbeat — updated by the Python worker each cycle
   lastPing              DateTime?
+  // Worker run summary — JSON blob written by worker each cycle for visibility
+  lastRunSummary        Json?     // { leadsEvaluated, leadsSkipped, draftsCreated, errors[], runAt }
   // Draft Mode
   draftMode             Boolean   @default(true)
   autoApproveHours      Int?      // null = never auto-approve; 24 = approve after 24hrs
-  dailySendLimit        Int       @default(20) // per-campaign daily cap; prevents multi-tenant quota sharing
+  dailySendLimit        Int       @default(20) // per-campaign daily cap
+  // Campaign identity (for multi-campaign support)
+  name                  String    @default("My Campaign")
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
   analytics             Analytics[]
   replies               Reply[]
   leads                 Lead[]
   drafts                Draft[]
+  excludedLeads         ExcludedLead[]
 }
 
 model Draft {
@@ -101,22 +106,30 @@ model Draft {
   leadEmail     String
   leadFirstName String?
   leadCompany   String?
+  leadTitle     String?  // Job title for richer preview card
+  leadLinkedIn  String?  // LinkedIn URL for lead verification
   
+  emailSubject  String?  // Subject line for preview & analytics
   emailBody     String   @db.Text
   status        String   @default("pending") // pending, approved, rejected, sent
+  followUpNum   Int      @default(0)  // 0=initial, 1=Day3, 2=Day7
+  sentAt        DateTime?  // Timestamp when email was actually delivered
   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
 
 model Analytics {
-  id          String   @id @default(cuid())
-  campaignId  String
-  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  date        DateTime @default(now())
-  emailsSent  Int      @default(0)
-  replies     Int      @default(0)
-  meetings    Int      @default(0)
+  id              String   @id @default(cuid())
+  campaignId      String
+  campaign        Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  date            DateTime @default(now())
+  emailsSent      Int      @default(0)
+  replies         Int      @default(0)
+  meetings        Int      @default(0)
+  draftsApproved  Int      @default(0)
+  draftsRejected  Int      @default(0)
+  emailsBounced   Int      @default(0)
 }
 
 model Reply {
@@ -153,4 +166,16 @@ model GlobalSuppression {
   email     String   @unique
   reason    String   @default("unsubscribe")
   createdAt DateTime @default(now())
+}
+
+// Per-campaign lead exclusion list (#3 — manual block by user)
+model ExcludedLead {
+  id          String   @id @default(cuid())
+  campaignId  String
+  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  email       String
+  reason      String?  // "replied", "not_interested", "wrong_person", "competitor", "manual"
+  excludedAt  DateTime @default(now())
+
+  @@unique([campaignId, email])
 }
