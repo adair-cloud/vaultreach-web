@@ -103,8 +103,12 @@ export default function Dashboard() {
     emailsSent: number
     replies: number
     meetings: number
+    draftsApproved: number
+    draftsRejected: number
+    emailsBounced: number
     recentReplies: { name: string; role: string; preview: string; score: string; time: string }[]
-  }>({ emailsSent: 0, replies: 0, meetings: 0, recentReplies: [] })
+  }>({ emailsSent: 0, replies: 0, meetings: 0, draftsApproved: 0, draftsRejected: 0, emailsBounced: 0, recentReplies: [] })
+  const [campaignName, setCampaignName] = useState("My Campaign")
   const [isRevoking, setIsRevoking] = useState(false)
 
   useEffect(() => {
@@ -153,13 +157,22 @@ export default function Dashboard() {
           if (campaign.draftMode !== undefined) setDraftMode(campaign.draftMode)
           if (campaign.autoApproveHours !== undefined) setAutoApproveHours(campaign.autoApproveHours ?? null)
           if (campaign.lastRunSummary) setLastRunSummary(campaign.lastRunSummary)
+          if (campaign.name) setCampaignName(campaign.name)
         }
       }
       setIsLoaded(true)
       const analyticsRes = await fetch("/api/analytics")
       if (analyticsRes.ok) {
         const data = await analyticsRes.json()
-        setAnalytics(data)
+        setAnalytics({
+          emailsSent:     data.emailsSent     ?? 0,
+          replies:        data.replies        ?? 0,
+          meetings:       data.meetings       ?? 0,
+          draftsApproved: data.draftsApproved ?? 0,
+          draftsRejected: data.draftsRejected ?? 0,
+          emailsBounced:  data.emailsBounced  ?? 0,
+          recentReplies:  data.recentReplies  ?? [],
+        })
       }
 
       const draftsRes = await fetch("/api/drafts")
@@ -225,6 +238,7 @@ export default function Dashboard() {
           apolloApiKey,
           draftMode,
           autoApproveHours: autoApproveHours ?? null,
+          name: campaignName,
         }),
       })
       if (!res.ok) throw new Error("Save failed")
@@ -300,6 +314,46 @@ export default function Dashboard() {
       border: "border-slate-200 text-slate-800 shadow-sm", iconColor: "text-emerald-600 bg-emerald-50",
       badge: "Est. @ $3K/deal", badgeColor: "text-emerald-700 bg-emerald-50 border-emerald-200",
       sub: analytics.meetings === 0 ? "Grows with every meeting" : "Based on avg deal size",
+    },
+  ]
+
+  // #5 — Draft funnel secondary stats (shown when any draft activity has happened)
+  const totalDraftActions = analytics.draftsApproved + analytics.draftsRejected
+  const approvalRate = totalDraftActions > 0
+    ? Math.round((analytics.draftsApproved / totalDraftActions) * 100)
+    : null
+  const bounceRate = analytics.emailsSent > 0
+    ? Math.round((analytics.emailsBounced / analytics.emailsSent) * 100)
+    : null
+
+  const draftFunnelStats = [
+    {
+      label: "Drafts Approved",
+      value: analytics.draftsApproved,
+      color: "text-emerald-600",
+      bg: "bg-emerald-50 border-emerald-100",
+      hint: approvalRate !== null ? `${approvalRate}% approval rate` : "No reviews yet",
+    },
+    {
+      label: "Drafts Rejected",
+      value: analytics.draftsRejected,
+      color: "text-rose-600",
+      bg: "bg-rose-50 border-rose-100",
+      hint: totalDraftActions > 0 ? `${100 - (approvalRate ?? 0)}% rejection rate` : "No reviews yet",
+    },
+    {
+      label: "Emails Bounced",
+      value: analytics.emailsBounced,
+      color: "text-amber-600",
+      bg: "bg-amber-50 border-amber-100",
+      hint: bounceRate !== null ? `${bounceRate}% bounce rate` : "Tracking starts on send",
+    },
+    {
+      label: "Open Rate (Est.)",
+      value: analytics.emailsSent > 0 ? `${Math.round(analytics.emailsSent * 0.44)}` : "—",
+      color: "text-indigo-600",
+      bg: "bg-indigo-50 border-indigo-100",
+      hint: "Based on 44% avg for cold email",
     },
   ]
 
@@ -508,9 +562,12 @@ export default function Dashboard() {
       <aside className="w-60 shrink-0 hidden md:flex flex-col justify-between border-r border-slate-200 bg-white">
         <div>
           <div className="h-16 flex items-center px-5 border-b border-slate-200">
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2.5 flex-1 min-w-0">
               <VaultLogo />
-              <span className="text-slate-900 font-black text-lg tracking-tight">VaultReach</span>
+              <div className="flex-1 min-w-0">
+                <div className="text-slate-900 font-black text-lg tracking-tight leading-none">VaultReach</div>
+                <div className="text-[10px] font-bold text-indigo-500 truncate mt-0.5">{campaignName}</div>
+              </div>
             </div>
           </div>
 
@@ -742,6 +799,8 @@ export default function Dashboard() {
                               })
                               if (res.ok) {
                                 setCampaignStatus("active")
+                                // #2 — Fire onboarding email (non-blocking)
+                                fetch("/api/onboarding-email", { method: "POST" }).catch(() => {})
                               } else {
                                 const data = await res.json()
                                 if (data.code === "SUBSCRIPTION_REQUIRED") {
@@ -969,6 +1028,60 @@ export default function Dashboard() {
                   ))}
                 </div>
 
+                {/* ── #1 Bounce Rate Alert Banner ── */}
+                {bounceRate !== null && bounceRate >= 5 && (
+                  <div className="rounded-2xl border border-rose-200 bg-rose-50 px-6 py-4 flex items-start gap-4">
+                    <div className="w-8 h-8 rounded-xl bg-rose-100 border border-rose-200 flex items-center justify-center shrink-0 mt-0.5">
+                      <AlertCircle size={16} className="text-rose-600" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-rose-900 font-bold text-sm mb-1">
+                        ⚠️ High Bounce Rate Detected — {bounceRate}%
+                      </div>
+                      <div className="text-rose-700 text-xs font-medium leading-relaxed">
+                        A bounce rate above 5% puts your domain at risk of being blacklisted by Gmail and Outlook. Pause your campaign and verify your domain's <strong>SPF</strong> and <strong>DKIM</strong> records before continuing. Your daily send limit may also need to be reduced.
+                      </div>
+                      <div className="mt-3 flex items-center gap-3">
+                        <a
+                          href="https://mxtoolbox.com/spf.aspx"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs font-bold text-rose-700 underline hover:text-rose-900 transition-colors"
+                        >
+                          Check SPF Record →
+                        </a>
+                        <a
+                          href="https://mxtoolbox.com/dkim.aspx"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs font-bold text-rose-700 underline hover:text-rose-900 transition-colors"
+                        >
+                          Check DKIM Record →
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── #5 Draft Funnel Stats Row ── */}
+                {(analytics.emailsSent > 0 || analytics.draftsApproved > 0 || analytics.draftsRejected > 0) && (
+                  <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
+                    <div className="bg-slate-50 border-b border-slate-200 px-6 py-3 flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                      <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Draft Funnel</h3>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-slate-100">
+                      {draftFunnelStats.map(stat => (
+                        <div key={stat.label} className="px-5 py-4">
+                          <div className={`text-2xl font-black ${stat.color}`}>{stat.value}</div>
+                          <div className="text-xs font-bold text-slate-700 mt-0.5">{stat.label}</div>
+                          <div className="text-[10px] text-slate-400 font-medium mt-0.5">{stat.hint}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* ── #8 Worker Activity Log — show when lastRunSummary exists ── */}
                 {lastRunSummary && (
                   <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
@@ -1046,29 +1159,67 @@ export default function Dashboard() {
                       </div>
                     </div>
                   ) : (
-                    <div className="divide-y border-slate-100">
+                    <div className="divide-y divide-slate-100">
                       {analytics.recentReplies.map((reply, i) => (
-                        <div key={i} className="px-6 py-4 hover:bg-slate-50 transition-colors flex items-center gap-4 bg-white">
-                          <div className="w-10 h-10 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-sm shrink-0 shadow-sm">
-                            {reply.name.charAt(0)}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-slate-900 font-bold text-sm">{reply.name}</span>
-                              <span className="text-slate-500 text-xs font-medium">{reply.role}</span>
+                        <div key={i} className="bg-white">
+                          {/* Reply row */}
+                          <div className="px-6 py-4 flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-sm shrink-0 shadow-sm">
+                              {reply.name.charAt(0)}
                             </div>
-                            <div className="text-slate-600 text-sm truncate">{reply.preview}</div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-slate-900 font-bold text-sm">{reply.name}</span>
+                                <span className="text-slate-500 text-xs font-medium">{reply.role}</span>
+                              </div>
+                              <div className="text-slate-600 text-sm truncate">{reply.preview}</div>
+                            </div>
+                            <div className="flex flex-col items-end gap-1.5 shrink-0">
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                                reply.score === "Hot"
+                                  ? "text-rose-700 bg-rose-50 border-rose-200"
+                                  : "text-amber-700 bg-amber-50 border-amber-200"
+                              }`}>
+                                {reply.score}
+                              </span>
+                              <span className="text-slate-400 font-medium text-[10px]">{reply.time}</span>
+                            </div>
                           </div>
-                          <div className="flex flex-col items-end gap-1.5 shrink-0">
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                              reply.score === "Hot"
-                                ? "text-rose-700 bg-rose-50 border-rose-200"
-                                : "text-amber-700 bg-amber-50 border-amber-200"
-                            }`}>
-                              {reply.score}
-                            </span>
-                            <span className="text-slate-400 font-medium text-[10px]">{reply.time}</span>
-                          </div>
+
+                          {/* #3 — Hot Reply Action Panel */}
+                          {reply.score === "Hot" && (
+                            <div className="mx-6 mb-4 rounded-xl border border-rose-100 bg-rose-50 p-4">
+                              <div className="text-xs font-bold text-rose-800 mb-2 flex items-center gap-1.5">
+                                <Zap size={12} className="text-rose-500" /> Suggested Response
+                              </div>
+                              <p className="text-xs text-slate-700 leading-relaxed bg-white border border-rose-100 rounded-lg px-3 py-2.5 mb-3 select-all">
+                                Hi {reply.name.split(" ")[0]}, great to hear from you! I&apos;d love to connect —
+                                {calendlyUrl
+                                  ? ` you can grab a time that works for you here: ${calendlyUrl}`
+                                  : " what does your schedule look like this week for a quick 15-minute call?"}
+                              </p>
+                              <div className="flex items-center gap-2">
+                                {calendlyUrl ? (
+                                  <a
+                                    href={`mailto:?subject=Re%3A%20Following%20up&body=Hi%20${encodeURIComponent(reply.name.split(" ")[0])}%2C%20great%20to%20hear%20from%20you!%20I%27d%20love%20to%20connect%20%E2%80%94%20you%20can%20grab%20a%20time%20that%20works%20here%3A%20${encodeURIComponent(calendlyUrl)}`}
+                                    className="inline-flex items-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors shadow-sm"
+                                  >
+                                    <Mail size={12} /> Open in Gmail
+                                  </a>
+                                ) : (
+                                  <a
+                                    href={`mailto:?subject=Re%3A%20Following%20up&body=Hi%20${encodeURIComponent(reply.name.split(" ")[0])}%2C%20great%20to%20hear%20from%20you!%20What%20does%20your%20schedule%20look%20like%20this%20week%20for%20a%20quick%2015-minute%20call%3F`}
+                                    className="inline-flex items-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors shadow-sm"
+                                  >
+                                    <Mail size={12} /> Open in Gmail
+                                  </a>
+                                )}
+                                <span className="text-[10px] text-slate-400 font-medium">
+                                  {calendlyUrl ? "Calendly link pre-loaded" : "Add Calendly link in Settings → AI Brain for auto-fill"}
+                                </span>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -1455,7 +1606,30 @@ export default function Dashboard() {
                     </button>
                   </div>
                   <div className="p-6 md:p-8 space-y-8">
+
+                    {/* ── #6 Campaign Name ── */}
                     <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-8">
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                          <Zap size={16} className="text-slate-500" /> Campaign Name
+                        </h3>
+                        <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                          A friendly label for this campaign. Displayed in your dashboard header and used to identify this campaign in reports.
+                        </p>
+                      </div>
+                      <div>
+                        <input
+                          type="text"
+                          value={campaignName}
+                          onChange={(e) => setCampaignName(e.target.value)}
+                          placeholder="e.g. Q2 SaaS Outreach"
+                          className="w-full bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                        />
+                        <p className="text-[10px] text-slate-400 font-medium mt-1.5">Saved when you click &ldquo;Save Settings&rdquo; below.</p>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-slate-100 pt-8 grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-8">
                       <div>
                         <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                           <KeyRound size={16} className="text-slate-500" /> Apollo.io API Key
