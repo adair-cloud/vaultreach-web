@@ -1039,7 +1039,7 @@ export default function Dashboard() {
                         ⚠️ High Bounce Rate Detected — {bounceRate}%
                       </div>
                       <div className="text-rose-700 text-xs font-medium leading-relaxed">
-                        A bounce rate above 5% puts your domain at risk of being blacklisted by Gmail and Outlook. Pause your campaign and verify your domain's <strong>SPF</strong> and <strong>DKIM</strong> records before continuing. Your daily send limit may also need to be reduced.
+                        A bounce rate above 5% puts your domain at risk of being blacklisted by Gmail and Outlook. Pause your campaign and verify your domain&apos;s <strong>SPF</strong> and <strong>DKIM</strong> records before continuing. Your daily send limit may also need to be reduced.
                       </div>
                       <div className="mt-3 flex items-center gap-3">
                         <a
