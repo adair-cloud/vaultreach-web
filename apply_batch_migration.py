@@ -4,11 +4,25 @@ Uses ADD COLUMN IF NOT EXISTS / CREATE TABLE IF NOT EXISTS — safe to re-run.
 """
 import os
 import psycopg2
+from pathlib import Path
+
+# Load .env file from the project root (same directory as this script)
+env_path = Path(__file__).parent / ".env"
+if env_path.exists():
+    with open(env_path) as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                key, _, value = line.partition("=")
+                # Only set if not already in environment (shell env takes priority)
+                if key.strip() not in os.environ:
+                    os.environ[key.strip()] = value.strip().strip('"').strip("'")
 
 database_url = os.environ.get("DATABASE_URL")
 if not database_url:
-    print("Error: DATABASE_URL not found in environment.")
+    print("Error: DATABASE_URL not found in environment or .env file.")
     exit(1)
+
 
 try:
     conn = psycopg2.connect(database_url)
