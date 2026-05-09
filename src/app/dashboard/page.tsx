@@ -82,6 +82,10 @@ export default function Dashboard() {
   // Draft Mode State
   const [draftMode, setDraftMode] = useState(true)
   const [autoApproveHours, setAutoApproveHours] = useState<number | null>(null)
+  // Daily send limit
+  const [dailySendLimit, setDailySendLimit] = useState(20)
+  // Webhook / Zapier integration
+  const [webhookUrl, setWebhookUrl] = useState("")
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [drafts, setDrafts] = useState<any[]>([])
   const [isActioningDraft, setIsActioningDraft] = useState<string | null>(null)
@@ -158,6 +162,8 @@ export default function Dashboard() {
           if (campaign.autoApproveHours !== undefined) setAutoApproveHours(campaign.autoApproveHours ?? null)
           if (campaign.lastRunSummary) setLastRunSummary(campaign.lastRunSummary)
           if (campaign.name) setCampaignName(campaign.name)
+          if (campaign.dailySendLimit !== undefined) setDailySendLimit(campaign.dailySendLimit ?? 20)
+          if (campaign.webhookUrl) setWebhookUrl(campaign.webhookUrl)
         }
       }
       setIsLoaded(true)
@@ -239,6 +245,8 @@ export default function Dashboard() {
           draftMode,
           autoApproveHours: autoApproveHours ?? null,
           name: campaignName,
+          dailySendLimit,
+          webhookUrl: webhookUrl.trim() || null,
         }),
       })
       if (!res.ok) throw new Error("Save failed")
@@ -731,17 +739,81 @@ export default function Dashboard() {
                         </div>
                       )}
 
-                      {/* Step 3 */}
-                      <div className="flex items-center gap-4 rounded-2xl px-5 py-4 bg-slate-50 border border-slate-200 opacity-60">
-                        <div className="w-8 h-8 rounded-full border-2 border-slate-300 flex items-center justify-center shrink-0 bg-white">
-                          <Zap size={14} className="text-slate-400" />
+                      {/* Step 3 — Apollo API Key */}
+                      {hasApolloApiKey ? (
+                        <div className="flex items-center gap-4 rounded-2xl px-5 py-4 bg-emerald-50 border border-emerald-100">
+                          <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center shrink-0 shadow-sm">
+                            <CheckCircle size={16} className="text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="text-emerald-900 font-bold text-sm">Apollo API Key Connected</div>
+                            <div className="text-emerald-600 text-xs font-medium">Lead scraping is enabled and ready.</div>
+                          </div>
+                          <button onClick={() => setActiveTab("settings")} className="shrink-0 text-indigo-600 hover:text-indigo-700 font-bold text-xs transition-colors">Edit</button>
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-full">Done</span>
                         </div>
-                        <div className="flex-1">
-                          <div className="text-slate-700 font-bold text-sm">AI warming up &amp; prospecting</div>
-                          <div className="text-slate-500 text-xs font-medium">Unlocks after Step 2 is complete.</div>
+                      ) : (
+                        <div className="rounded-2xl border-2 border-amber-400 bg-amber-50 shadow-sm p-5 space-y-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-amber-400 flex items-center justify-center shrink-0 shadow-sm">
+                              <KeyRound size={14} className="text-white" />
+                            </div>
+                            <div>
+                              <div className="text-slate-900 font-bold text-sm">Add your Apollo.io API Key</div>
+                              <div className="text-slate-500 text-xs font-medium">Required to scrape leads — free account takes 60 seconds to set up.</div>
+                            </div>
+                          </div>
+                          <input
+                            type="password"
+                            value={wizardApolloKey}
+                            onChange={e => setWizardApolloKey(e.target.value)}
+                            placeholder="Paste your Apollo API key here..."
+                            className="w-full bg-white border-2 border-amber-200 focus:border-amber-400 text-slate-900 text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-400/20 transition-all font-mono"
+                          />
+                          <div className="flex items-center gap-3">
+                            <button
+                              disabled={!wizardApolloKey.trim() || wizardSaving}
+                              onClick={async () => {
+                                setWizardSaving(true)
+                                try {
+                                  const r = await fetch("/api/campaigns", {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ apolloApiKey: wizardApolloKey.trim() }),
+                                  })
+                                  if (r.ok) {
+                                    setApolloApiKey(wizardApolloKey.trim())
+                                    setHasApolloApiKey(true)
+                                  }
+                                } finally {
+                                  setWizardSaving(false)
+                                }
+                              }}
+                              className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 disabled:bg-slate-200 disabled:cursor-not-allowed text-white font-bold text-xs px-4 py-2 rounded-xl transition-all shadow-sm"
+                            >
+                              {wizardSaving ? "Saving..." : <><CheckCircle size={12} /> Save Key</>}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setShowApolloHelp(v => !v)}
+                              className="text-xs text-indigo-600 font-bold hover:underline"
+                            >
+                              {showApolloHelp ? "▾" : "▸"} How do I get a free key?
+                            </button>
+                          </div>
+                          {showApolloHelp && (
+                            <div className="bg-white border border-amber-100 rounded-xl p-4 text-xs text-slate-700 space-y-1.5 leading-relaxed">
+                              <p className="font-bold text-amber-800">Get your free key in 60 seconds:</p>
+                              <ol className="list-decimal list-inside space-y-1">
+                                <li>Go to <a href="https://app.apollo.io" target="_blank" rel="noreferrer" className="text-indigo-600 font-bold underline">app.apollo.io</a> and create a free account (no credit card).</li>
+                                <li>Click your avatar → <strong>Settings</strong> → <strong>Integrations</strong> → <strong>API</strong>.</li>
+                                <li>Click <strong>Create New Key</strong>, name it &ldquo;VaultReach&rdquo;, and copy it.</li>
+                                <li>Paste it into the field above and click <strong>Save Key</strong>.</li>
+                              </ol>
+                            </div>
+                          )}
                         </div>
-                        <span className="text-[10px] font-bold text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full">Locked</span>
-                      </div>
+                      )}
                     </div>
                   </div>
                 ) : (
@@ -1678,6 +1750,67 @@ export default function Dashboard() {
                             </div>
                           )}
                         </div>
+                      </div>
+                    </div>
+
+                    {/* ── Daily Send Limit ── */}
+                    <div className="border-t border-slate-100 pt-8 grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-8">
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                          <Zap size={16} className="text-slate-500" /> Daily Send Limit
+                        </h3>
+                        <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                          Max emails sent per day. Start low (10–20) on new domains. Increase only after your bounce rate stays below 2% for 2+ weeks.
+                        </p>
+                      </div>
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-4">
+                          <input
+                            type="range"
+                            min={5}
+                            max={50}
+                            step={5}
+                            value={dailySendLimit}
+                            onChange={e => setDailySendLimit(Number(e.target.value))}
+                            className="flex-1 accent-indigo-600"
+                          />
+                          <span className="text-slate-900 font-black text-lg w-12 text-right">{dailySendLimit}</span>
+                        </div>
+                        <div className="flex justify-between text-[10px] text-slate-400 font-medium px-0.5">
+                          <span>5 / day</span>
+                          <span className="text-amber-600 font-bold">{dailySendLimit > 30 ? "⚠️ High — ensure domain is warmed" : ""}</span>
+                          <span>50 / day</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* ── Webhook / Zapier Integration ── */}
+                    <div className="border-t border-slate-100 pt-8 grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-8">
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                          <Zap size={16} className="text-slate-500" /> Webhook / Zapier
+                        </h3>
+                        <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                          When a Hot reply is detected, VaultReach will POST the lead&apos;s details to this URL. Use it to connect HubSpot, Pipedrive, Slack, or any Zapier workflow.
+                        </p>
+                        <a
+                          href="https://zapier.com/apps/webhook/integrations"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs text-indigo-600 font-bold hover:underline mt-2 inline-block"
+                        >
+                          Get a Zapier Webhook URL →
+                        </a>
+                      </div>
+                      <div className="space-y-2">
+                        <input
+                          type="url"
+                          value={webhookUrl}
+                          onChange={e => setWebhookUrl(e.target.value)}
+                          placeholder="https://hooks.zapier.com/hooks/catch/..."
+                          className="w-full bg-slate-50 border border-slate-200 text-slate-900 text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all font-mono"
+                        />
+                        <p className="text-[10px] text-slate-400 font-medium">Leave blank to disable. Payload includes: name, company, title, email, score, and campaign name.</p>
                       </div>
                     </div>
 

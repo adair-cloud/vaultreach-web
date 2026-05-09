@@ -31,9 +31,16 @@ export async function GET() {
   const campaign = user.campaigns[0]
   const allAnalytics = campaign.analytics
 
-  const emailsSent = allAnalytics.reduce((sum, a) => sum + a.emailsSent, 0)
-  const replies    = allAnalytics.reduce((sum, a) => sum + a.replies, 0)
-  const meetings   = allAnalytics.reduce((sum, a) => sum + a.meetings, 0)
+  const emailsSent     = allAnalytics.reduce((sum, a) => sum + a.emailsSent, 0)
+  const replies        = allAnalytics.reduce((sum, a) => sum + a.replies, 0)
+  const meetings       = allAnalytics.reduce((sum, a) => sum + a.meetings, 0)
+  // Draft funnel fields (added via batch migration)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const draftsApproved = allAnalytics.reduce((sum, a) => sum + ((a as any).draftsApproved ?? 0), 0)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const draftsRejected = allAnalytics.reduce((sum, a) => sum + ((a as any).draftsRejected ?? 0), 0)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const emailsBounced  = allAnalytics.reduce((sum, a) => sum + ((a as any).emailsBounced ?? 0), 0)
 
   // Map Reply records to the shape the dashboard UI expects
   const recentReplies = campaign.replies.map((r) => ({
@@ -44,7 +51,7 @@ export async function GET() {
     time:      formatRelativeTime(r.receivedAt),
   }))
 
-  return NextResponse.json({ emailsSent, replies, meetings, recentReplies })
+  return NextResponse.json({ emailsSent, replies, meetings, recentReplies, draftsApproved, draftsRejected, emailsBounced })
 }
 
 /** Converts a Date to a human-readable relative string, e.g. "2h ago", "1d ago". */

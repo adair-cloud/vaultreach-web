@@ -86,6 +86,12 @@ export async function POST(req: NextRequest) {
     // Draft / sending mode
     draftMode,
     autoApproveHours,
+    // Daily send cap
+    dailySendLimit,
+    // Webhook / Zapier
+    webhookUrl,
+    // Campaign identity
+    name,
     // Onboarding
     hasOnboarded,
   } = body
@@ -133,6 +139,9 @@ export async function POST(req: NextRequest) {
         ...(autoApproveHours !== undefined && {
           autoApproveHours: autoApproveHours === null ? null : Number(autoApproveHours),
         }),
+        ...(dailySendLimit  !== undefined && { dailySendLimit: Number(dailySendLimit) }),
+        ...(webhookUrl      !== undefined && { webhookUrl: webhookUrl || null }),
+        ...(name            !== undefined && name.trim() && { name: name.trim() }),
       },
     })
 
