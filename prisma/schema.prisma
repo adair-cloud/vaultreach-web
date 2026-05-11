@@ -184,3 +184,13 @@ model ExcludedLead {
 
   @@unique([campaignId, email])
 }
+
+// Trial drip email tracking — one row per (userId, emailType) so each email fires exactly once
+model TrialEmail {
+  id        String   @id @default(cuid())
+  userId    String
+  emailType String   // "day1" | "day3" | "day7" | "day12" | "day14"
+  sentAt    DateTime @default(now())
+
+  @@unique([userId, emailType])
+}
