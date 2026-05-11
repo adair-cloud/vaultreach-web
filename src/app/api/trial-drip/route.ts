@@ -20,11 +20,28 @@ const WORKER_SECRET     = process.env.WORKER_PING_SECRET ?? ""
 const BASE_URL          = process.env.NEXTAUTH_URL ?? "https://www.vaultreach.ai"
 const STRIPE_PORTAL_URL = `${BASE_URL}/api/stripe/checkout`
 
+type CampaignStats = {
+  leadsScraped: number
+  emailsSent: number
+  replies: number
+  hotReplies: number
+}
+
 type DripDef = {
   day: number
   type: string
   subject: string
-  html: (name: string, dashboardUrl: string) => string
+  html: (name: string, dashboardUrl: string, stats?: CampaignStats) => string
+}
+
+async function getCampaignStats(campaignId: string): Promise<CampaignStats> {
+  const [leadsScraped, emailsSent, replies, hotReplies] = await Promise.all([
+    prisma.lead.count({ where: { campaignId } }),
+    prisma.draft.count({ where: { campaignId, status: "sent" } }),
+    prisma.reply.count({ where: { campaignId } }),
+    prisma.reply.count({ where: { campaignId, score: "Hot" } }),
+  ])
+  return { leadsScraped, emailsSent, replies, hotReplies }
 }
 
 const DRIP_SEQUENCE: DripDef[] = [
@@ -51,7 +68,13 @@ const DRIP_SEQUENCE: DripDef[] = [
     day: 3,
     type: "day3",
     subject: "📬 VaultReach update: your first emails are going out",
-    html: (name, dash) => `
+    html: (name, dash, stats) => {
+      const sent    = stats?.emailsSent   ?? 0
+      const scraped = stats?.leadsScraped ?? 0
+      const statLine = sent > 0
+        ? `VaultReach has already sent <strong>${sent} personalized email${sent !== 1 ? "s" : ""}</strong> on your behalf to ${scraped} qualified prospects.`
+        : `VaultReach is actively scraping qualified B2B leads from Apollo and will begin sending personalized emails within the next 24 hours.`
+      return `
       <div style="max-width:520px;margin:32px auto;font-family:-apple-system,sans-serif;color:#1e293b;">
         <div style="background:linear-gradient(135deg,#0891b2,#0e7490);padding:24px 32px;border-radius:12px 12px 0 0;">
           <p style="color:#a5f3fc;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin:0 0 6px;">VaultReach · Day 3</p>
@@ -59,33 +82,56 @@ const DRIP_SEQUENCE: DripDef[] = [
         </div>
         <div style="background:white;border:1px solid #e2e8f0;border-top:0;border-radius:0 0 12px 12px;padding:28px 32px;">
           <p style="font-size:15px;line-height:1.7;margin:0 0 16px;">Hey ${name},</p>
-          <p style="font-size:15px;line-height:1.7;margin:0 0 16px;">VaultReach has been working in the background. Personalized cold emails are going out daily from your Gmail to qualified prospects that match your targeting. Every email is written specifically for each recipient — not a template blast.</p>
-          <p style="font-size:15px;line-height:1.7;margin:0 0 16px;">If a prospect doesn't respond, VaultReach automatically sends a Day 3 and Day 7 follow-up. You don't have to touch anything.</p>
+          <p style="font-size:15px;line-height:1.7;margin:0 0 16px;">${statLine}</p>
+          <p style="font-size:15px;line-height:1.7;margin:0 0 16px;">Every email is written specifically for each recipient — not a template blast. If a prospect doesn't respond, VaultReach automatically sends a Day 3 and Day 7 follow-up. You don't have to touch anything.</p>
           <p style="font-size:15px;line-height:1.7;margin:0 0 24px;">Check your dashboard to see who's been contacted and watch for your first reply.</p>
           <a href="${dash}" style="display:inline-block;background:#0891b2;color:white;font-weight:700;font-size:14px;padding:12px 24px;border-radius:8px;text-decoration:none;">See Your Pipeline →</a>
           <p style="color:#94a3b8;font-size:12px;margin:28px 0 0;line-height:1.6;">4 days left in your free trial.<br/>— Adair, VaultReach</p>
         </div>
-      </div>`,
+      </div>`
+    },
   },
   {
     day: 5,
     type: "day5",
-    subject: "📊 Mid-trial check-in — here's what VaultReach has done",
-    html: (name, dash) => `
+    subject: "📊 Your VaultReach trial results — 5 days in",
+    html: (name, dash, stats) => {
+      const sent     = stats?.emailsSent   ?? 0
+      const replies  = stats?.replies      ?? 0
+      const hotLeads = stats?.hotReplies   ?? 0
+      const scraped  = stats?.leadsScraped ?? 0
+      return `
       <div style="max-width:520px;margin:32px auto;font-family:-apple-system,sans-serif;color:#1e293b;">
         <div style="background:linear-gradient(135deg,#059669,#047857);padding:24px 32px;border-radius:12px 12px 0 0;">
           <p style="color:#a7f3d0;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin:0 0 6px;">VaultReach · Day 5</p>
-          <h1 style="color:white;font-size:20px;font-weight:800;margin:0;">5 days in — check your results 📊</h1>
+          <h1 style="color:white;font-size:20px;font-weight:800;margin:0;">Here's what VaultReach did for you 📊</h1>
         </div>
         <div style="background:white;border:1px solid #e2e8f0;border-top:0;border-radius:0 0 12px 12px;padding:28px 32px;">
-          <p style="font-size:15px;line-height:1.7;margin:0 0 16px;">Hey ${name},</p>
-          <p style="font-size:15px;line-height:1.7;margin:0 0 16px;">You're 5 days into your VaultReach trial. By now you should be seeing activity on your dashboard — leads scraped, emails sent, and hopefully some replies coming in.</p>
-          <p style="font-size:15px;line-height:1.7;margin:0 0 16px;">Hot replies (prospects who expressed genuine interest) are flagged automatically in your Recent Replies panel. Those are the conversations worth following up on.</p>
-          <p style="font-size:15px;line-height:1.7;margin:0 0 24px;">Log in and see where you stand.</p>
-          <a href="${dash}" style="display:inline-block;background:#059669;color:white;font-weight:700;font-size:14px;padding:12px 24px;border-radius:8px;text-decoration:none;">View Results →</a>
+          <p style="font-size:15px;line-height:1.7;margin:0 0 20px;">Hey ${name},</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0 0 24px;">
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px 20px;text-align:center;">
+              <p style="font-size:28px;font-weight:800;color:#0f172a;margin:0 0 4px;">${scraped}</p>
+              <p style="font-size:12px;color:#64748b;margin:0;font-weight:600;">LEADS SCRAPED</p>
+            </div>
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px 20px;text-align:center;">
+              <p style="font-size:28px;font-weight:800;color:#0f172a;margin:0 0 4px;">${sent}</p>
+              <p style="font-size:12px;color:#64748b;margin:0;font-weight:600;">EMAILS SENT</p>
+            </div>
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px 20px;text-align:center;">
+              <p style="font-size:28px;font-weight:800;color:#0f172a;margin:0 0 4px;">${replies}</p>
+              <p style="font-size:12px;color:#64748b;margin:0;font-weight:600;">REPLIES</p>
+            </div>
+            <div style="background:${hotLeads > 0 ? '#fef3c7' : '#f8fafc'};border:1px solid ${hotLeads > 0 ? '#fde68a' : '#e2e8f0'};border-radius:10px;padding:16px 20px;text-align:center;">
+              <p style="font-size:28px;font-weight:800;color:${hotLeads > 0 ? '#92400e' : '#0f172a'};margin:0 0 4px;">${hotLeads}</p>
+              <p style="font-size:12px;color:${hotLeads > 0 ? '#b45309' : '#64748b'};margin:0;font-weight:600;">🔥 HOT LEADS</p>
+            </div>
+          </div>
+          <p style="font-size:15px;line-height:1.7;margin:0 0 24px;">${hotLeads > 0 ? `You have <strong>${hotLeads} hot lead${hotLeads !== 1 ? "s" : ""}</strong> — prospects who expressed genuine interest. Check your dashboard to see their replies.` : "Keep an eye on your dashboard — replies typically come in over the first 5–7 days as follow-up sequences kick in."}</p>
+          <a href="${dash}" style="display:inline-block;background:#059669;color:white;font-weight:700;font-size:14px;padding:12px 24px;border-radius:8px;text-decoration:none;">View Full Results →</a>
           <p style="color:#94a3b8;font-size:12px;margin:28px 0 0;line-height:1.6;">Trial ends in 2 days. Upgrade anytime to keep the machine running.<br/>— Adair, VaultReach</p>
         </div>
-      </div>`,
+      </div>`
+    },
   },
   {
     day: 6,
@@ -192,11 +238,18 @@ export async function POST(req: NextRequest) {
 
   const results: Record<string, string> = {}
 
+  // Fetch real stats once — only used by Day 3 & Day 5 templates
+  const dueTypes = DRIP_SEQUENCE
+    .filter(d => daysSinceCreated >= d.day && !sentTypes.has(d.type))
+    .map(d => d.type)
+  const needsStats = dueTypes.includes("day3") || dueTypes.includes("day5")
+  const stats = needsStats ? await getCampaignStats(campaignId) : undefined
+
   for (const drip of DRIP_SEQUENCE) {
     if (daysSinceCreated < drip.day) continue   // not time yet
     if (sentTypes.has(drip.type))   continue   // already sent
 
-    const html = drip.html(userName, dashUrl)
+    const html = drip.html(userName, dashUrl, stats)
     const sent = await sendDripEmail(userEmail, drip.subject, html)
 
     if (sent) {
@@ -211,5 +264,5 @@ export async function POST(req: NextRequest) {
   }
 
   console.log(`📧 trial-drip for campaign ${campaignId}:`, results)
-  return NextResponse.json({ ok: true, daysSinceCreated, results })
+  return NextResponse.json({ ok: true, daysSinceCreated, stats: stats ?? null, results })
 }
