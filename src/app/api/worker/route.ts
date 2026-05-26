@@ -7,7 +7,6 @@ import OpenAI from "openai"
 // with x-worker-secret header. Both patterns accepted.
 const WORKER_SECRET  = process.env.WORKER_PING_SECRET ?? ""
 const OPENAI_KEY     = process.env.OPENAI_API_KEY ?? ""
-const RESEND_KEY     = process.env.RESEND_API_KEY ?? ""
 const BASE_URL       = process.env.NEXTAUTH_URL ?? "https://www.vaultreach.ai"
 
 // ─── Apollo types ────────────────────────────────────────────────────────────
@@ -376,7 +375,7 @@ export async function POST(req: NextRequest) {
       // ── Check send window ───────────────────────────────────────────────────
       const now        = new Date()
       const dayOfWeek  = now.getDay() // 0=Sun, 1=Mon …
-      const hourOfDay  = now.getUTCHours() // UTC; worker runs in UTC
+      const _hourOfDay  = now.getUTCHours() // UTC; worker runs in UTC
 
       const sendDays   = (campaign.sendDays ?? "1,2,3,4,5")
         .split(",")

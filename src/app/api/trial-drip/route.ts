@@ -137,7 +137,7 @@ const DRIP_SEQUENCE: DripDef[] = [
     day: 6,
     type: "day6",
     subject: "⏰ Your VaultReach trial ends tomorrow",
-    html: (name, dash) => `
+    html: (name, _dash) => `
       <div style="max-width:520px;margin:32px auto;font-family:-apple-system,sans-serif;color:#1e293b;">
         <div style="background:linear-gradient(135deg,#d97706,#b45309);padding:24px 32px;border-radius:12px 12px 0 0;">
           <p style="color:#fde68a;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin:0 0 6px;">VaultReach · Trial Ending</p>
@@ -220,7 +220,7 @@ export async function POST(req: NextRequest) {
   }
 
   const user      = campaign.user
-  const userEmail = user.email
+  const userEmail = user.email!
   const userName  = user.name?.split(" ")[0] ?? "there"
   const dashUrl   = `${BASE_URL}/dashboard`
 

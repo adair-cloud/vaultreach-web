@@ -10,7 +10,7 @@ import { prisma } from "@/lib/prisma"
  * Returns the raw Apollo response (first 3 leads) plus diagnostic info.
  * Owner-only endpoint — never exposed to regular users.
  */
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.email) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -74,12 +74,15 @@ export async function GET(req: NextRequest) {
       } else {
         const data = JSON.parse(text) as { people?: unknown[]; pagination?: unknown }
         apolloLeadCount = (data.people ?? []).length
-        apolloSample    = (data.people ?? []).map((p: any) => ({
-          name:   p.name,
-          title:  p.title,
-          email:  p.email ? `${p.email.slice(0, 3)}***` : null,
-          company: p.organization?.name,
-        }))
+        apolloSample    = (data.people ?? []).map((item) => {
+          const p = item as Record<string, unknown>
+          return {
+            name:    p.name,
+            title:   p.title,
+            email:   typeof p.email === "string" ? `${p.email.slice(0, 3)}***` : null,
+            company: (p.organization as Record<string, unknown> | null | undefined)?.name,
+          }
+        })
         apolloStatus = apolloLeadCount > 0 ? "ok" : "empty_results"
       }
     } catch (e) {

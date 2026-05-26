@@ -4,10 +4,17 @@ import { stripe } from "@/lib/stripe"
 import { prisma } from "@/lib/prisma"
 import { authOptions } from "@/lib/authOptions"
 
+const OWNER_EMAILS = ["adair@vaultreach.ai"]
+
 export async function POST() {
   const session = await getServerSession(authOptions)
   if (!session?.user?.email) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  // Owner accounts are never billed — redirect straight to the dashboard
+  if (OWNER_EMAILS.includes(session.user.email)) {
+    return NextResponse.json({ url: `${process.env.NEXTAUTH_URL}/dashboard` })
   }
 
   const user = await prisma.user.findUnique({

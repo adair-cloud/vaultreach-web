@@ -28,12 +28,31 @@ export async function POST(req: Request) {
   }
 
   try {
-    await prisma.campaign.update({
+    const campaign = await prisma.campaign.update({
       where: { id: campaignId },
       data: { lastPing: new Date() },
+      select: { name: true, lastRunSummary: true, user: { select: { email: true } } }
     })
+
+    // Observability: Trigger external webhook if configured
+    const webhookUrl = process.env.SLACK_WEBHOOK_URL || process.env.DISCORD_WEBHOOK_URL
+    if (webhookUrl && campaign.lastRunSummary) {
+      const summary = campaign.lastRunSummary as Record<string, unknown>
+      const message = `*VaultReach Worker Heartbeat* 🟢\nCampaign: ${campaign.name} (${campaign.user.email})\nDrafts Created: ${summary.draftsCreated || 0}\nLeads Evaluated: ${summary.leadsEvaluated || 0}\nErrors: ${Array.isArray(summary.errors) ? summary.errors.length : 0}`
+      
+      const payload = webhookUrl.includes("discord") 
+        ? { content: message } 
+        : { text: message }
+
+      await fetch(webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      }).catch(err => console.error("Failed to send webhook:", err))
+    }
+
     return NextResponse.json({ ok: true, lastPing: new Date().toISOString() })
-  } catch {
+  } catch (_e) {
     return NextResponse.json({ error: "Campaign not found" }, { status: 404 })
   }
 }
