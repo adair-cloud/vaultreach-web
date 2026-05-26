@@ -115,7 +115,7 @@ async function sendViaGmail(
   }
 }
 
-// ─── Draft personalized email via OpenAI ─────────────────────────────────────
+// ─── Draft personalized email via OpenAI (radical variance engine) ───────────
 async function draftEmail(
   lead: ApolloPerson,
   campaign: {
@@ -135,59 +135,111 @@ async function draftEmail(
   })()
   const customRules = rulesObj.custom ?? ""
   const coreOffer   = rulesObj.coreOffer ?? ""
-  const calendlyUrl = rulesObj.calendlyUrl ?? ""
 
-  const systemPrompt = `You are an expert B2B cold email copywriter. Write highly personalized, concise cold outreach emails.
-Rules:
-- Plain text ONLY. No HTML, no markdown, no bullet points.
-- Maximum 120 words in the body.
-- One clear CTA per email.
-- Sound like a real human founder, not a robot or template.
-- Never use hollow phrases like "I hope this finds you well" or "I wanted to reach out".
-- Open with something specific to their role or company that shows you've done your homework.
+  const firstName   = lead.first_name ?? lead.name?.split(" ")[0] ?? "there"
+  const company     = lead.organization?.name ?? "their company"
+  const title       = lead.title ?? "founder"
+
+  // ── Structural variance seed ─────────────────────────────────────────────
+  // Pick random patterns so every email has a different skeleton.
+  const subjectPatterns = [
+    `one-word or two-word subject — use the company name alone, or a single concept like "Pipeline" or "Outreach"`,
+    `short, jarring observation — e.g. "10 reps. No automation." or "All manual. All day."`,
+    `lowercase curiosity hook — e.g. "quick thought on ${company}" or "saw ${company} hiring"`,
+    `a number-led subject — e.g. "3x pipeline, 0 extra hours" or "20 leads. 1 hour."`,
+    `a single human question as subject — e.g. "is ${firstName} doing this manually?" or "worth 7 days?"`,
+  ]
+  const openingPatterns = [
+    `Start with a specific, researched observation about ${company} or the ${title} role — something that feels like you actually looked them up.`,
+    `Start with a bold assumption about a pain they definitely feel, stated as fact, not a question.`,
+    `Start with a counterintuitive or surprising statement about their industry or role.`,
+    `Start with a one-sentence outcome story: what happened when someone like them used this.`,
+    `Start with an admission or vulnerability: something honest and unexpected that earns trust immediately.`,
+  ]
+  const lengthPatterns = [
+    `Keep the email extremely short: 3 sentences maximum. Every word must earn its place.`,
+    `Use 5-6 sentences. Give the reader enough context to feel intrigued, but not overwhelmed.`,
+    `Use 4 sentences. Two for context, one for the offer, one for the CTA.`,
+  ]
+  const ctaVariants = [
+    `I built an AI that sent you this email. Open to a 7-day free trial to see it work for ${company}?`,
+    `Worth a 7-day trial to see if it fills your pipeline? (The AI that wrote this runs 24/7.)`,
+    `Curious if this could work for ${company}? Happy to set up a free trial — no pitch call required.`,
+    `The AI that wrote this email runs 24/7. Want to see it do the same for ${company}?`,
+  ]
+
+  // Seeded random selection — different for every lead
+  const seed = (lead.id?.charCodeAt(0) ?? 0) + (lead.email?.charCodeAt(2) ?? 0)
+  const pick = (arr: string[]) => arr[seed % arr.length]
+  const pick2 = (arr: string[]) => arr[(seed + 2) % arr.length]
+  const pick3 = (arr: string[]) => arr[(seed + 1) % arr.length]
+  const pick4 = (arr: string[]) => arr[(seed + 3) % arr.length]
+
+  const systemPrompt = `You are a world-class B2B cold email copywriter. Your single goal is to write an email that gets a REPLY — not a click, not a visit, a reply.
+
+ABSOLUTE RULES (violating any of these makes the email worthless):
+- Plain text ONLY. No HTML, no markdown, no bullet points, no em-dashes formatting.
+- NEVER include a URL or website link in the email body. Not even vaultreach.ai. Not ever.
+- NEVER start with the recipient's name.
+- NEVER use these phrases: "I hope", "I wanted to", "touching base", "circling back", "quick question", "I noticed", "I came across", "I saw your profile", "I hope this finds you".
+- ONE CTA only. The CTA must invite a reply, never a click.
+- Sound like a real human founder writing from their laptop at 7am, not a marketing department.
 - Tone: ${campaign.tone}.
-${customRules ? `- Additional rules: ${customRules}` : ""}
-${coreOffer ? `- Core offer/value prop: ${coreOffer}` : ""}`
 
-  const userPrompt = `Write a cold email to:
-Name: ${lead.first_name ?? lead.name ?? "there"}
-Title: ${lead.title ?? "founder"}
-Company: ${lead.organization?.name ?? "their company"}
-LinkedIn: ${lead.linkedin_url ?? "N/A"}
+STRUCTURAL BRIEF FOR THIS SPECIFIC EMAIL (follow this precisely):
+- Subject line style: ${pick(subjectPatterns)}
+- Opening line style: ${pick2(openingPatterns)}
+- Length: ${pick3(lengthPatterns)}
+- CTA to use verbatim: "${pick4(ctaVariants)}"
 
-Product being pitched: VaultReach (${campaign.websiteUrl ?? "https://www.vaultreach.ai"})
-What it does: VaultReach is an AI-powered email outreach tool that autonomously finds B2B leads, writes personalized cold emails, and sends them from your Gmail — 24/7 without lifting a finger. Founders use it to build a full sales pipeline on autopilot. 7-day free trial.
-Target industry: ${campaign.targetIndustry}
-Sender: ${senderName}, Founder of VaultReach
-${calendlyUrl ? `CTA: Book a 15-min call: ${calendlyUrl}` : `CTA: Start free trial at https://www.vaultreach.ai/subscribe`}
+${customRules ? `ADDITIONAL RULES FROM CAMPAIGN SETTINGS:\n${customRules}` : ""}
+${coreOffer ? `WHAT YOU'RE SELLING:\n${coreOffer}` : ""}`
+
+  const userPrompt = `Write a cold email using the structural brief above.
+
+RECIPIENT:
+- Name: ${firstName}
+- Title: ${title}
+- Company: ${company}
+- LinkedIn: ${lead.linkedin_url ?? "not available"}
+
+SENDER: ${senderName}, Founder of VaultReach (an AI-powered outreach tool)
+INDUSTRY CONTEXT: ${campaign.targetIndustry}
 
 Respond in JSON format exactly:
 {
-  "subject": "<subject line, no quotes>",
-  "body": "<plain text body, no HTML>"
+  "subject": "<subject line — follow the style in your brief>",
+  "body": "<plain text body — no URLs, no HTML, ends with the exact CTA from your brief>"
 }`
 
   try {
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model:           "gpt-4o-mini",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user",   content: userPrompt },
       ],
       response_format: { type: "json_object" },
-      max_tokens: 500,
-      temperature: 0.8,
+      max_tokens:      600,
+      temperature:     1.0, // Max variance — different structure every time
     })
 
-    const raw = completion.choices[0]?.message?.content ?? "{}"
+    const raw    = completion.choices[0]?.message?.content ?? "{}"
     const parsed = JSON.parse(raw) as { subject?: string; body?: string }
     if (!parsed.subject || !parsed.body) return null
-    return { subject: parsed.subject.trim(), body: parsed.body.trim() }
+
+    // Safety net: strip any URLs that snuck in despite instructions
+    const cleanBody = parsed.body
+      .replace(/https?:\/\/\S+/gi, "vaultreach.ai")
+      .trim()
+
+    return { subject: parsed.subject.trim(), body: cleanBody }
   } catch (e) {
     console.error("OpenAI draft error:", e)
     return null
   }
 }
+
 
 // ─── Fetch leads from Apollo ──────────────────────────────────────────────────
 async function fetchApolloLeads(
